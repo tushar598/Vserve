@@ -1,125 +1,149 @@
-"use client"
+"use client";
 
-import { useEffect, useMemo, useRef, useState } from "react"
-import dynamic from "next/dynamic"
+import { useState, useEffect, useRef } from "react";
+import {
+  GoogleMap,
+  Marker,
+  Circle,
+  Polyline,
+  useJsApiLoader,
+} from "@react-google-maps/api";
 
-import { OFFICE_CENTER, OFFICE_RADIUS_METERS, haversineMeters, todayKey } from "@/lib/constants"
+// Center of your office (change this to your coordinates)
+const OFFICE_CENTER = { lat: 22.7196, lng: 75.8577 }; // Example: Indore
+const OFFICE_RADIUS_METERS = 150; // 150m radius
 
-// ✅ Dynamically import all of react-leaflet as one module
-const MapWithNoSSR = dynamic(
-  async () => {
-    const RL = await import("react-leaflet")
-    return function MapInner({
-      pos,
-      path,
-      markerIcon,
-    }: {
-      pos: { lat: number; lng: number } | null
-      path: Array<[number, number]>
-      markerIcon: any
-    }) {
-      const { MapContainer, TileLayer, Marker, Circle, Polyline } = RL
-
-      const center = pos || OFFICE_CENTER
-
-      return (
-        <div></div>
-        // <MapContainer center={[center.lat, center.lng]} zoom={16} style={{ height: "100%", width: "100%" }}>
-        //   <TileLayer attribution="&copy; OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-        //   <Circle center={[OFFICE_CENTER.lat, OFFICE_CENTER.lng]} radius={OFFICE_RADIUS_METERS} pathOptions={{ color: "#3b82f6" }} />
-        //   {pos && <Marker position={[pos.lat, pos.lng]} icon={markerIcon || undefined} />}
-        //   {path.length > 1 && <Polyline positions={path} pathOptions={{ color: "#16a34a", weight: 4 }} />}
-        // </MapContainer>
-      )
-    }
-  },
-  { ssr: false }
-)
+const containerStyle = {
+  width: "100%",
+  height: "400px",
+};
 
 type Props = {
-  enabled: boolean
-  phone: string
-  onInsideRadius?: (inside: boolean) => void
-  onCoords?: (c: { lat: number; lng: number }) => void
-}
+  enabled: boolean;
+  phone: string;
+  onInsideRadius?: (inside: boolean) => void;
+  onCoords?: (coords: { lat: number; lng: number }) => void;
+};
 
-export default function MapTracker({ enabled, phone, onInsideRadius, onCoords }: Props) {
-  const [pos, setPos] = useState<{ lat: number; lng: number } | null>(null)
-  const [path, setPath] = useState<Array<[number, number]>>([])
-  const [markerIcon, setMarkerIcon] = useState<any>(null)
-  const watchId = useRef<number | null>(null)
+export default function MapTracker({
+  enabled,
+  phone,
+  onInsideRadius,
+  onCoords,
+}: Props) {
+  const { isLoaded } = useJsApiLoader({
+    id: "google-map-script",
+    googleMapsApiKey: "YOUR_GOOGLE_MAPS_API_KEY", // ⚠️ Replace this
+  });
 
-  // Load Leaflet icon
-  // useEffect(() => {
-  //   ;(async () => {
-  //     const L = (await import("leaflet")).default
-  //     setMarkerIcon(
-  //       L.icon({
-  //         iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  //         iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  //         shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  //         iconSize: [25, 41],
-  //         iconAnchor: [12, 41],
-  //       })
-  //     )
-  //   })()
-  // }, [])
+  const [pos, setPos] = useState<{ lat: number; lng: number } | null>(null);
+  // const [path, setPath] = useState<Array<[number, number]>>([]);
+  const watchId = useRef<number | null>(null);
 
-  // Load previous track
+  // ✅ Load previous track from localStorage
   useEffect(() => {
-    if (!phone) return
-    const recs = JSON.parse(localStorage.getItem(`attendance:${phone}`) || "{}")
-    const today = recs[todayKey()]
+    if (!phone) return;
+    const records = JSON.parse(localStorage.getItem(`attendance:${phone}`) || "{}");
+    const todayKey = new Date().toISOString().split("T")[0];
+    const today = records[todayKey];
     if (today?.track?.length) {
-      setPath(today.track.map((p: any) => [p.lat, p.lng]))
+      // setPath(today.track.map((p: any) => [p.lat, p.lng]));
     }
-  }, [phone])
+  }, [phone]);
 
-  // GPS watcher
+  // ✅ Start GPS tracking
   useEffect(() => {
     if (!enabled) {
       if (watchId.current !== null && navigator.geolocation) {
-        navigator.geolocation.clearWatch(watchId.current)
-        watchId.current = null
+        navigator.geolocation.clearWatch(watchId.current);
+        watchId.current = null;
       }
-      return
+      return;
     }
-    if (!navigator.geolocation) return
+
+    if (!navigator.geolocation) return;
 
     watchId.current = navigator.geolocation.watchPosition(
       (p) => {
-        const c = { lat: p.coords.latitude, lng: p.coords.longitude }
-        setPos(c)
-        onCoords?.(c)
-        const inside = haversineMeters(c, OFFICE_CENTER) <= OFFICE_RADIUS_METERS
-        onInsideRadius?.(inside)
+        const c = { lat: p.coords.latitude, lng: p.coords.longitude };
+        setPos(c);
+        onCoords?.(c);
 
-        const storeKey = `attendance:${phone}`
-        const all = JSON.parse(localStorage.getItem(storeKey) || "{}")
-        const rec = all[todayKey()]
-        if (rec) {
-          const newPt = { lat: c.lat, lng: c.lng, ts: Date.now() }
-          rec.track = [...(rec.track || []), newPt]
-          all[todayKey()] = rec
-          localStorage.setItem(storeKey, JSON.stringify(all))
-          setPath((prev) => [...prev, [c.lat, c.lng]])
-        }
+        // Check if inside office radius
+        const distance = haversineMeters(c, OFFICE_CENTER);
+        const inside = distance <= OFFICE_RADIUS_METERS;
+        onInsideRadius?.(inside);
+
+        // Save track in localStorage
+        const storeKey = `attendance:${phone}`;
+        const all = JSON.parse(localStorage.getItem(storeKey) || "{}");
+        const todayKey = new Date().toISOString().split("T")[0];
+        const rec = all[todayKey] || { track: [] };
+
+        const newPoint = { lat: c.lat, lng: c.lng, ts: Date.now() };
+        rec.track = [...rec.track, newPoint];
+        all[todayKey] = rec;
+        localStorage.setItem(storeKey, JSON.stringify(all));
+        // setPath((prev) => [...prev, [c.lat, c.lng]]);
       },
       () => onInsideRadius?.(false),
       { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 }
-    )
+    );
 
     return () => {
       if (watchId.current !== null && navigator.geolocation) {
-        navigator.geolocation.clearWatch(watchId.current)
-        watchId.current = null
+        navigator.geolocation.clearWatch(watchId.current);
+        watchId.current = null;
       }
-    }
-  }, [enabled, phone, onCoords, onInsideRadius])
+    };
+  }, [enabled, phone, onCoords, onInsideRadius]);
+
+  if (!isLoaded) return <p>Loading Map...</p>;
 
   return (
-    <div className="h-[320px] rounded-md overflow-hidden border">
-      <MapWithNoSSR pos={pos} path={path} markerIcon={markerIcon} />
+    <div className="h-[400px] w-full rounded-md overflow-hidden border">
+      <GoogleMap
+        mapContainerStyle={containerStyle}
+        center={pos || OFFICE_CENTER}
+        zoom={17}
+        options={{
+          disableDefaultUI: false,
+          zoomControl: true,
+          streetViewControl: false,
+        }}
+      >
+        {/* Office radius circle */}
+        <Circle
+          center={OFFICE_CENTER}
+          radius={OFFICE_RADIUS_METERS}
+          options={{ strokeColor: "#3b82f6", fillColor: "#93c5fd", fillOpacity: 0.2 }}
+        />
+
+        {/* Current position marker */}
+        {pos && <Marker position={pos} />}
+
+        {/* Path line */}
+        {/* {path.length > 1 && (
+          <Polyline
+            path={path.map(([lat, lng]) => ({ lat, lng }))}
+            options={{ strokeColor: "#16a34a", strokeWeight: 4 }}
+          />
+        )} */}
+      </GoogleMap>
     </div>
-  )
+  );
+}
+
+// ✅ Haversine formula for distance in meters
+function haversineMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
+  const R = 6371000;
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+  const lat1 = (a.lat * Math.PI) / 180;
+  const lat2 = (b.lat * Math.PI) / 180;
+
+  const h =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  return R * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 }

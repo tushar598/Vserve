@@ -1,4 +1,4 @@
-export const OFFICE_CENTER = { lat: 28.6139, lng: 77.209 } // New Delhi (example)
+export const OFFICE_CENTER = { lat: 22.7237325, lng: 75.8839635 } // (example)
 export const OFFICE_RADIUS_METERS = 200 // 200m
 
 export function haversineMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
