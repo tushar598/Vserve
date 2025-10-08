@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import Navbar from "@/components/Navbar"
 import AttendanceList from "@/components/dashboard/attendance-list"
 import { OFFICE_CENTER, OFFICE_RADIUS_METERS, isWithinCheckinWindow, haversineMeters, todayKey } from "@/lib/constants"
 import { GoogleMap, Marker, Circle, Polyline, useJsApiLoader } from "@react-google-maps/api"
@@ -161,7 +162,9 @@ export default function DashboardPage() {
   }, [checkedIn, authPhone])
 
   return (
-    <main className="p-4 max-w-5xl mx-auto space-y-6">
+    <div> 
+      <Navbar />
+    <main className="p-4 max-w-5xl mx-auto space-y-6 mt-[20vw]">
       {/* ... existing header, cards, attendance controls, AttendanceList ... */}
 
       <AttendanceList phone={authPhone || ""} />
@@ -195,5 +198,6 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
     </main>
+    </div>
   )
 }

@@ -1,5 +1,5 @@
-export const OFFICE_CENTER = { lat: 22.7237325, lng: 75.8839635 } // (example)
-export const OFFICE_RADIUS_METERS = 200 // 200m
+export const OFFICE_CENTER = { lat: 22.723732544, lng: 75.883963555 } // (example)
+export const OFFICE_RADIUS_METERS = 50 // 200m
 
 export function haversineMeters(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
   const toRad = (x: number) => (x * Math.PI) / 180

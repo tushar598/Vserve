@@ -78,7 +78,7 @@ export default function LoginOTP() {
     <Card className="border">
       <CardHeader className="space-y-3">
         <div className="flex items-center justify-center">
-          <Image src="/images/logo.jpg" alt="Company Logo" width={64} height={64} className="rounded-md" />
+          <Image src="/images/logo.png" alt="Company Logo" width={125} height={80} className="rounded-md" />
         </div>
         <CardTitle className="text-center text-balance">Sign in with Mobile OTP</CardTitle>
       </CardHeader>
