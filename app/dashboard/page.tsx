@@ -1,56 +1,49 @@
-"use client"
+"use client";
 
-import { useEffect, useMemo, useState } from "react"
-import { useRouter } from "next/navigation"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import Navbar from "@/components/Navbar"
+import { useEffect, useMemo, useState } from "react";
+import { useJsApiLoader, GoogleMap, Marker, Circle, Polyline } from "@react-google-maps/api";
+import Navbar from "@/components/Navbar";
+import { Card, CardContent,CardHeader,CardTitle } from "@/components/ui/card";
 import AttendanceList from "@/components/dashboard/attendance-list"
-import {
-  OFFICE_CENTER,
-  OFFICE_RADIUS_METERS,
-  isWithinCheckinWindow,
-  haversineMeters,
-  todayKey,
-} from "@/lib/constants"
-import { GoogleMap, Marker, Circle, Polyline, useJsApiLoader } from "@react-google-maps/api"
-import { Loader2 } from "lucide-react"
+const OFFICE_CENTER = { lat: 23.1575299, lng: 75.79963555 };
+const OFFICE_RADIUS_METERS = 200; // 200 meters
+const haversineMeters = (coords1: { lat: number; lng: number }, coords2: { lat: number; lng: number }) => {
+  const R = 6371000;
+  const dLat = ((coords2.lat - coords1.lat) * Math.PI) / 180;
+  const dLng = ((coords2.lng - coords1.lng) * Math.PI) / 180;
+  const lat1 = (coords1.lat * Math.PI) / 180;
+  const lat2 = (coords2.lat * Math.PI) / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
 
-type TrackPoint = { lat: number; lng: number; ts: number }
 type AttendanceRecord = {
   date: string
   checkInTime?: number
   checkInLocation?: { lat: number; lng: number }
-  track?: TrackPoint[]
   checkOutTime?: number
   checkOutLocation?: { lat: number; lng: number }
   status?: "on-time" | "late"
   lateApproved?: boolean
 }
 
-const mapContainerStyle = { width: "100%", height: "320px" }
 
 export default function DashboardPage() {
-  const router = useRouter()
-
-  // --- All hooks declared at the top ---
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [inside, setInside] = useState(false);
+  const [checkedIn, setCheckedIn] = useState(false);
+  const [path, setPath] = useState<Array<[number, number]>>([]);
+  const [userData, setUserData] = useState<any>(null);
+   const [auth, setAuth] = useState<any>(null) // Store logged-in user info
   const [authPhone, setAuthPhone] = useState<string | null>(null)
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null)
-  const [inside, setInside] = useState(false)
-  const [checkedIn, setCheckedIn] = useState(false)
   const [attRec, setAttRec] = useState<AttendanceRecord | null>(null)
-  const [path, setPath] = useState<Array<[number, number]>>([])
   const [employees, setEmployees] = useState<any[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const { isLoaded } = useJsApiLoader({
-    id: "google-map-script",
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
-  })
-
-  // --- Fetch employees ---
-  useEffect(() => {
+  
+useEffect(() => {
     const fetchEmployees = async () => {
       try {
         const res = await fetch("/api/employees")
@@ -65,150 +58,88 @@ export default function DashboardPage() {
     }
     fetchEmployees()
   }, [])
+  const { isLoaded } = useJsApiLoader({
+    id: "google-map-script",
+    googleMapsApiKey: "AIzaSyDJIW2o84fQf8hMV9Qu2-zxb2nFM_v0db0", // Add your key here
+  });
 
-  // --- Load auth and today's record ---
+  const canCheckIn = useMemo(() => inside && !checkedIn, [inside, checkedIn]);
+
+  // Load user data from backend or localStorage
   useEffect(() => {
-    const a = JSON.parse(localStorage.getItem("auth") || "null")
-    if (!a || a.role !== "executive") {
-      router.replace("/login")
-      return
-    }
-    setAuthPhone(a.phone)
+    const auth = JSON.parse(localStorage.getItem("auth") || "null");
+    if (!auth) return;
+    setUserData(auth); // assuming auth has { name, phone, email, role }
+  }, []);
 
-    const k = `attendance:${a.phone}`
-    const all = JSON.parse(localStorage.getItem(k) || "{}")
-    const rec: AttendanceRecord = all[todayKey()] || null
-    setAttRec(rec || null)
-    setCheckedIn(!!rec?.checkInTime && !rec?.checkOutTime)
-
-    // geolocate once
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (p) => {
-          const c = { lat: p.coords.latitude, lng: p.coords.longitude }
-          setCoords(c)
-          const d = haversineMeters(c, OFFICE_CENTER)
-          setInside(d <= OFFICE_RADIUS_METERS)
-        },
-        () => {},
-        { enableHighAccuracy: true, timeout: 10000 },
-      )
-    }
-
-    // Load today's path
-    const recs = JSON.parse(localStorage.getItem(`attendance:${a.phone}`) || "{}")
-    const today = recs[todayKey()]
-    if (today?.track?.length) {
-      setPath(today.track.map((p: any) => [p.lat, p.lng]))
-    }
-  }, [router])
-
-  // --- Memo for check-in availability ---
-  const canCheckIn = useMemo(() => {
-    return isWithinCheckinWindow(new Date()) && inside && !checkedIn
-  }, [inside, checkedIn])
-
-  // --- Attendance actions ---
-  const markAttendance = () => {
-    if (!authPhone || !coords) return
-    const k = `attendance:${authPhone}`
-    const all = JSON.parse(localStorage.getItem(k) || "{}")
-    const now = Date.now()
-    const status: AttendanceRecord["status"] = isWithinCheckinWindow(new Date(now)) ? "on-time" : "late"
-    const rec: AttendanceRecord = {
-      date: todayKey(),
-      checkInTime: now,
-      checkInLocation: coords,
-      track: [],
-      status,
-    }
-    all[todayKey()] = rec
-    localStorage.setItem(k, JSON.stringify(all))
-    setAttRec(rec)
-    setCheckedIn(true)
-  }
-
-  const dayOut = () => {
-    if (!authPhone) return
-    const k = `attendance:${authPhone}`
-    const all = JSON.parse(localStorage.getItem(k) || "{}")
-    const rec: AttendanceRecord = all[todayKey()]
-    if (!rec) return
-    const now = Date.now()
-    const outLoc = coords || rec.checkInLocation
-    all[todayKey()] = { ...rec, checkOutTime: now, checkOutLocation: outLoc }
-    localStorage.setItem(k, JSON.stringify(all))
-    setAttRec(all[todayKey()])
-    setCheckedIn(false)
-  }
-
-  const requestLateApproval = () => {
-    if (!authPhone || !attRec) return
-    const pool = JSON.parse(localStorage.getItem("lateRequests") || "[]")
-    const exists = pool.find((r: any) => r.phone === authPhone && r.date === attRec.date)
-    if (exists) return
-    pool.push({
-      id: `LR${Math.floor(Math.random() * 100000)}`,
-      phone: authPhone,
-      date: attRec.date,
-      reason: "Traffic/Unavoidable circumstances",
-      status: "pending",
-      remarks: "",
-      createdAt: Date.now(),
-    })
-    localStorage.setItem("lateRequests", JSON.stringify(pool))
-    alert("Late request submitted for manager approval.")
-  }
-
-  const logout = () => {
-    localStorage.removeItem("auth")
-    router.replace("/login")
-  }
-
-  // --- Real-time GPS tracking ---
+  // Track user location
   useEffect(() => {
-    if (!checkedIn || !navigator.geolocation || !authPhone) return
+    if (!navigator.geolocation) return;
     const watchId = navigator.geolocation.watchPosition(
       (p) => {
-        const c = { lat: p.coords.latitude, lng: p.coords.longitude }
-        setCoords(c)
-        const inside = haversineMeters(c, OFFICE_CENTER) <= OFFICE_RADIUS_METERS
-        setInside(inside)
-
-        // Save to localStorage
-        const storeKey = `attendance:${authPhone}`
-        const all = JSON.parse(localStorage.getItem(storeKey) || "{}")
-        const rec = all[todayKey()] || { track: [] }
-        rec.track = [...rec.track, { lat: c.lat, lng: c.lng, ts: Date.now() }]
-        all[todayKey()] = rec
-        localStorage.setItem(storeKey, JSON.stringify(all))
-        setPath((prev) => [...prev, [c.lat, c.lng]])
+        const c = { lat: p.coords.latitude, lng: p.coords.longitude };
+        setCoords(c);
+        const insideRadius = haversineMeters(c, OFFICE_CENTER) <= OFFICE_RADIUS_METERS;
+        setInside(insideRadius);
+        if (checkedIn) setPath((prev) => [...prev, [c.lat, c.lng]]);
+        console.log("Coords:", c, "Inside:", insideRadius);
       },
-      () => {},
+      (err) => console.error(err),
       { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 }
-    )
-    return () => navigator.geolocation.clearWatch(watchId)
-  }, [checkedIn, authPhone])
+    );
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [checkedIn]);
 
-  // --- Conditional returns after all hooks ---
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-[70vh]">
-        <Loader2 className="animate-spin h-8 w-8 text-primary" />
-      </div>
-    )
-  }
+  // Check-In
+  const handleCheckIn = async () => {
+    if (!coords || !userData?.phone) return;
+    try {
+      const res = await fetch("/api/attendance/checkin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: userData.phone, coords }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      setCheckedIn(true);
+      setPath([]);
+      console.log("Checked in:", data.record);
+      alert("Checked in successfully!");
+    } catch (err: any) {
+      alert("Check-in failed: " + err.message);
+    }
+  };
 
-  if (error) {
-    return <p className="text-center text-red-500 mt-10">{error}</p>
-  }
+  // Check-Out
+  const handleCheckOut = async () => {
+    if (!coords || !userData?.phone) return;
+    try {
+      const res = await fetch("/api/attendance/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: userData.phone, coords }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+      setCheckedIn(false);
+      setPath([]);
+      console.log("Checked out:", data.record);
+      alert("Checked out successfully!");
+    } catch (err: any) {
+      alert("Check-out failed: " + err.message);
+    }
+  };
+
+  if (!isLoaded) return <div className="h-[70vh] flex justify-center items-center">Loading map...</div>;
 
   return (
-    <div>
+    <main>
       <Navbar />
-      <main className="p-4 max-w-5xl mx-auto space-y-6 mt-[20vw]">
-        {/* Employee List */}
-        <Card>
+      <div className="p-4 max-w-3xl mx-auto space-y-4">
+        <h1 className="text-2xl font-bold text-center">Office Check-In</h1>
+
+        {/* User Info */}
+         <Card>
           <CardHeader>
             <CardTitle>Employee List</CardTitle>
           </CardHeader>
@@ -242,34 +173,48 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Attendance List */}
-        <AttendanceList phone={authPhone || ""} />
-
         {/* Google Map */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Live GPS Map</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoaded && (
-              <GoogleMap mapContainerStyle={mapContainerStyle} center={coords || OFFICE_CENTER} zoom={17}>
-                <Circle
-                  center={OFFICE_CENTER}
-                  radius={OFFICE_RADIUS_METERS}
-                  options={{ strokeColor: "#3b82f6", fillColor: "#93c5fd", fillOpacity: 0.2 }}
-                />
-                {coords && <Marker position={coords} />}
-                {path.length > 1 && (
-                  <Polyline
-                    path={path.map(([lat, lng]) => ({ lat, lng }))}
-                    options={{ strokeColor: "#16a34a", strokeWeight: 4 }}
-                  />
-                )}
-              </GoogleMap>
+        <div style={{ width: "100%", height: "400px" }}>
+          <GoogleMap mapContainerStyle={{ width: "100%", height: "100%" }} center={coords || OFFICE_CENTER} zoom={17}>
+            <Circle
+              center={OFFICE_CENTER}
+              radius={OFFICE_RADIUS_METERS}
+              options={{ strokeColor: "#3b82f6", fillColor: "#93c5fd", fillOpacity: 0.2 }}
+            />
+            {coords && <Marker position={coords} label="You" />}
+            <Marker position={OFFICE_CENTER} label="Office" />
+            {path.length > 1 && (
+              <Polyline
+                path={path.map(([lat, lng]) => ({ lat, lng }))}
+                options={{ strokeColor: "#16a34a", strokeWeight: 4 }}
+              />
             )}
-          </CardContent>
-        </Card>
-      </main>
-    </div>
-  )
+          </GoogleMap>
+        </div>
+
+        {/* Check-In / Check-Out Buttons */}
+        <div className="text-center space-x-4">
+          <button
+            onClick={handleCheckIn}
+            disabled={!canCheckIn}
+            className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
+          >
+            Check In
+          </button>
+          <button
+            onClick={handleCheckOut}
+            disabled={!checkedIn}
+            className="px-4 py-2 bg-red-600 text-white rounded disabled:opacity-50"
+          >
+            Check Out
+          </button>
+        </div>
+
+        {/* Status */}
+        {!inside && <p className="text-red-500 mt-2 text-center">You are outside office radius.</p>}
+        {inside && !checkedIn && <p className="text-green-600 mt-2 text-center">You are inside office radius. You can check in.</p>}
+        {checkedIn && <p className="text-blue-600 mt-2 text-center">Checked in successfully.</p>}
+      </div>
+    </main>
+  );
 }
