@@ -28,6 +28,7 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [step, setStep] = useState(1); // Step 1 for Basic Details, Step 2 for Additional Details
 
   const handleChange = (field: string, value: string) => {
     setFormData({ ...formData, [field]: value });
@@ -46,9 +47,17 @@ export default function Register() {
       setError("Password must be at least 4 characters");
       return;
     }
-    if (!formData.name || !formData.fatherName || !formData.panCard || !formData.bankAccountNumber || !formData.dateOfJoining || !formData.addressProof || !formData.idCardNumber) {
-      setError("All fields are required");
+    if (!formData.name || !formData.fatherName || !formData.phone || !formData.password || !formData.role) {
+      setError("All fields in Basic Details are required");
       return;
+    }
+
+    if (step === 2) {
+      // Additional Details Validations
+      if (!formData.panCard || !formData.bankAccountNumber || !formData.dateOfJoining || !formData.addressProof || !formData.idCardNumber) {
+        setError("All fields in Additional Details are required");
+        return;
+      }
     }
 
     setLoading(true);
@@ -72,6 +81,23 @@ export default function Register() {
     }
   };
 
+  const handleNext = () => {
+    if (step === 1) {
+      // Validate basic details before moving to step 2
+      if (!formData.name || !formData.fatherName || !formData.phone || !formData.password || !formData.role) {
+        setError("Please fill all fields in Basic Details");
+      } else {
+        setStep(2); // Move to next step
+      }
+    } else {
+      handleRegister(); // Submit the form when at step 2
+    }
+  };
+
+  const handlePrevious = () => {
+    setStep(1); // Go back to step 1
+  };
+
   return (
     <Card className="border max-w-md mx-auto mt-10">
       <CardHeader className="space-y-3">
@@ -81,86 +107,104 @@ export default function Register() {
         <CardTitle className="text-center text-balance">Register New Employee</CardTitle>
       </CardHeader>
 
-      <CardContent className="space-y-4">
-        {/* Full Name */}
-        <div className="grid gap-2">
-          <Label htmlFor="name">Full Name</Label>
-          <Input id="name" placeholder="Enter full name" value={formData.name} onChange={(e) => handleChange("name", e.target.value)} />
-        </div>
+      <CardContent className="space-y-4 ">
+        {/* Basic Details Form */}
+        {step === 1 && (
+          <>
+            {/* Full Name */}
+            <div className="grid gap-2">
+              <Label htmlFor="name">Full Name</Label>
+              <Input id="name" placeholder="Enter full name" value={formData.name} onChange={(e) => handleChange("name", e.target.value)} />
+            </div>
 
-        {/* Father's Name */}
-        <div className="grid gap-2">
-          <Label htmlFor="fatherName">Father's Name</Label>
-          <Input id="fatherName" placeholder="Enter father's name" value={formData.fatherName} onChange={(e) => handleChange("fatherName", e.target.value)} />
-        </div>
+            {/* Father's Name */}
+            <div className="grid gap-2">
+              <Label htmlFor="fatherName">Father's Name</Label>
+              <Input id="fatherName" placeholder="Enter father's name" value={formData.fatherName} onChange={(e) => handleChange("fatherName", e.target.value)} />
+            </div>
 
-        {/* Phone */}
-        <div className="grid gap-2">
-          <Label htmlFor="phone">Mobile Number</Label>
-          <Input
-            id="phone"
-            inputMode="numeric"
-            maxLength={10}
-            placeholder="Enter 10-digit number"
-            value={formData.phone}
-            onChange={(e) => handleChange("phone", e.target.value.replace(/\D/g, ""))}
-          />
-        </div>
+            {/* Phone */}
+            <div className="grid gap-2">
+              <Label htmlFor="phone">Mobile Number</Label>
+              <Input
+                id="phone"
+                inputMode="numeric"
+                maxLength={10}
+                placeholder="Enter 10-digit number"
+                value={formData.phone}
+                onChange={(e) => handleChange("phone", e.target.value.replace(/\D/g, ""))}
+              />
+            </div>
 
-        {/* Password */}
-        <div className="grid gap-2">
-          <Label htmlFor="password">Password</Label>
-          <Input id="password" type="password" placeholder="Enter password" value={formData.password} onChange={(e) => handleChange("password", e.target.value)} />
-        </div>
+            {/* Password */}
+            <div className="grid gap-2">
+              <Label htmlFor="password">Password</Label>
+              <Input id="password" type="password" placeholder="Enter password" value={formData.password} onChange={(e) => handleChange("password", e.target.value)} />
+            </div>
 
-        {/* Role */}
-        <div className="grid gap-2">
-          <Label htmlFor="role">Role</Label>
-          <Select value={formData.role} onValueChange={(v: any) => handleChange("role", v)}>
-            <SelectTrigger id="role" aria-label="Select role">
-              <SelectValue placeholder="Select role" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="executive">Executive</SelectItem>
-              <SelectItem value="manager">Manager</SelectItem>
-              <SelectItem value="admin">Admin</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+            {/* Role */}
+            <div className="grid gap-2">
+              <Label htmlFor="role">Role</Label>
+              <Select value={formData.role} onValueChange={(v: any) => handleChange("role", v)}>
+                <SelectTrigger id="role" aria-label="Select role">
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="executive">Executive</SelectItem>
+                  <SelectItem value="manager">Manager</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </>
+        )}
 
-        {/* PAN Card */}
-        <div className="grid gap-2">
-          <Label htmlFor="panCard">PAN Card Number</Label>
-          <Input id="panCard" placeholder="Enter PAN Card" value={formData.panCard} onChange={(e) => handleChange("panCard", e.target.value)} />
-        </div>
+        {/* Additional Details Form */}
+        {step === 2 && (
+          <>
+            {/* PAN Card */}
+            <div className="grid gap-2">
+              <Label htmlFor="panCard">PAN Card Number</Label>
+              <Input id="panCard" placeholder="Enter PAN Card" value={formData.panCard} onChange={(e) => handleChange("panCard", e.target.value)} />
+            </div>
 
-        {/* Bank Account */}
-        <div className="grid gap-2">
-          <Label htmlFor="bankAccountNumber">Bank Account Number</Label>
-          <Input id="bankAccountNumber" placeholder="Enter Bank Account" value={formData.bankAccountNumber} onChange={(e) => handleChange("bankAccountNumber", e.target.value)} />
-        </div>
+            {/* Bank Account */}
+            <div className="grid gap-2">
+              <Label htmlFor="bankAccountNumber">Bank Account Number</Label>
+              <Input id="bankAccountNumber" placeholder="Enter Bank Account" value={formData.bankAccountNumber} onChange={(e) => handleChange("bankAccountNumber", e.target.value)} />
+            </div>
 
-        {/* Date of Joining */}
-        <div className="grid gap-2">
-          <Label htmlFor="dateOfJoining">Date of Joining</Label>
-          <Input id="dateOfJoining" type="date" value={formData.dateOfJoining} onChange={(e) => handleChange("dateOfJoining", e.target.value)} />
-        </div>
+            {/* Date of Joining */}
+            <div className="grid gap-2">
+              <Label htmlFor="dateOfJoining">Date of Joining</Label>
+              <Input id="dateOfJoining" type="date" value={formData.dateOfJoining} onChange={(e) => handleChange("dateOfJoining", e.target.value)} />
+            </div>
 
-        {/* Address Proof */}
-        <div className="grid gap-2">
-          <Label htmlFor="addressProof">Address Proof (URL)</Label>
-          <Input id="addressProof" placeholder="Enter address proof URL" value={formData.addressProof} onChange={(e) => handleChange("addressProof", e.target.value)} />
-        </div>
+            {/* Address Proof */}
+            <div className="grid gap-2">
+              <Label htmlFor="addressProof">Address Proof (URL)</Label>
+              <Input id="addressProof" placeholder="Enter address proof URL" value={formData.addressProof} onChange={(e) => handleChange("addressProof", e.target.value)} />
+            </div>
 
-        {/* ID Card Number */}
-        <div className="grid gap-2">
-          <Label htmlFor="idCardNumber">ID Card Number</Label>
-          <Input id="idCardNumber" placeholder="Enter ID Card Number" value={formData.idCardNumber} onChange={(e) => handleChange("idCardNumber", e.target.value)} />
-        </div>
+            {/* ID Card Number */}
+            <div className="grid gap-2">
+              <Label htmlFor="idCardNumber">ID Card Number</Label>
+              <Input id="idCardNumber" placeholder="Enter ID Card Number" value={formData.idCardNumber} onChange={(e) => handleChange("idCardNumber", e.target.value)} />
+            </div>
+          </>
+        )}
 
-        <Button className="w-full" disabled={loading} onClick={handleRegister}>
-          {loading ? "Registering..." : "Register"}
-        </Button>
+        <div className="flex justify-between">
+          {step === 2 && (
+            <Button className="w-auto" onClick={handlePrevious}>
+              Previous
+            </Button>
+          )}
+
+          <Button className="w-auto" onClick={handleNext} disabled={loading}>
+            {step === 1 ? "Next" : loading ? "Registering..." : "Register"}
+          </Button>
+        </div>
 
         {error && <p className="text-sm text-destructive">{error}</p>}
         {success && <p className="text-sm text-success">{success}</p>}

@@ -9,9 +9,9 @@ export default function HomePage() {
       <div className="w-full max-w-md">
         <LoginOTP />
         <p className="mt-6 text-center text-sm text-muted-foreground">
-          Manager or Admin?{" "}
-          <Link className="underline hover:text-primary" href="/admin">
-            Open Admin Panel
+          New User?{" "}
+          <Link className="underline hover:text-primary" href="/register">
+            Open Registration Form
           </Link>
         </p>
       </div>
