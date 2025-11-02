@@ -1,63 +1,74 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useJsApiLoader, GoogleMap, Marker, Circle, Polyline } from "@react-google-maps/api";
+import {
+  useJsApiLoader,
+  GoogleMap,
+  Marker,
+  Circle,
+  Polyline,
+} from "@react-google-maps/api";
 import Navbar from "@/components/Navbar";
-import { Card, CardContent,CardHeader,CardTitle } from "@/components/ui/card";
-import AttendanceList from "@/components/dashboard/attendance-list"
-const OFFICE_CENTER = { lat: 23.1575299, lng: 75.79963555 };
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import AttendanceList from "@/components/dashboard/attendance-list";
+const OFFICE_CENTER = { lat: 22.99759732563232, lng: 76.06066503870348 };
 const OFFICE_RADIUS_METERS = 200; // 200 meters
-const haversineMeters = (coords1: { lat: number; lng: number }, coords2: { lat: number; lng: number }) => {
+const haversineMeters = (
+  coords1: { lat: number; lng: number },
+  coords2: { lat: number; lng: number }
+) => {
   const R = 6371000;
   const dLat = ((coords2.lat - coords1.lat) * Math.PI) / 180;
   const dLng = ((coords2.lng - coords1.lng) * Math.PI) / 180;
   const lat1 = (coords1.lat * Math.PI) / 180;
   const lat2 = (coords2.lat * Math.PI) / 180;
-  const a = Math.sin(dLat / 2) ** 2 + Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 };
 
 type AttendanceRecord = {
-  date: string
-  checkInTime?: number
-  checkInLocation?: { lat: number; lng: number }
-  checkOutTime?: number
-  checkOutLocation?: { lat: number; lng: number }
-  status?: "on-time" | "late"
-  lateApproved?: boolean
-}
-
+  date: string;
+  checkInTime?: number;
+  checkInLocation?: { lat: number; lng: number };
+  checkOutTime?: number;
+  checkOutLocation?: { lat: number; lng: number };
+  status?: "on-time" | "late";
+  lateApproved?: boolean;
+};
 
 export default function DashboardPage() {
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
+    null
+  );
   const [inside, setInside] = useState(false);
   const [checkedIn, setCheckedIn] = useState(false);
   const [path, setPath] = useState<Array<[number, number]>>([]);
   const [userData, setUserData] = useState<any>(null);
-   const [auth, setAuth] = useState<any>(null) // Store logged-in user info
-  const [authPhone, setAuthPhone] = useState<string | null>(null)
-  const [attRec, setAttRec] = useState<AttendanceRecord | null>(null)
-  const [employees, setEmployees] = useState<any[]>([])
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [auth, setAuth] = useState<any>(null); // Store logged-in user info
+  const [authPhone, setAuthPhone] = useState<string | null>(null);
+  const [attRec, setAttRec] = useState<AttendanceRecord | null>(null);
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  
-useEffect(() => {
+  useEffect(() => {
     const fetchEmployees = async () => {
       try {
-        const res = await fetch("/api/employees")
-        const data = await res.json()
-        if (!data.success) throw new Error(data.error)
-        setEmployees(data.employees)
+        const res = await fetch("/api/employees");
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+        setEmployees(data.employees);
       } catch (err: any) {
-        setError(err.message)
+        setError(err.message);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
-    fetchEmployees()
-  }, [])
+    };
+    fetchEmployees();
+  }, []);
   const { isLoaded } = useJsApiLoader({
     id: "google-map-script",
     googleMapsApiKey: "AIzaSyDJIW2o84fQf8hMV9Qu2-zxb2nFM_v0db0", // Add your key here
@@ -79,7 +90,8 @@ useEffect(() => {
       (p) => {
         const c = { lat: p.coords.latitude, lng: p.coords.longitude };
         setCoords(c);
-        const insideRadius = haversineMeters(c, OFFICE_CENTER) <= OFFICE_RADIUS_METERS;
+        const insideRadius =
+          haversineMeters(c, OFFICE_CENTER) <= OFFICE_RADIUS_METERS;
         setInside(insideRadius);
         if (checkedIn) setPath((prev) => [...prev, [c.lat, c.lng]]);
         console.log("Coords:", c, "Inside:", insideRadius);
@@ -130,7 +142,12 @@ useEffect(() => {
     }
   };
 
-  if (!isLoaded) return <div className="h-[70vh] flex justify-center items-center">Loading map...</div>;
+  if (!isLoaded)
+    return (
+      <div className="h-[70vh] flex justify-center items-center">
+        Loading map...
+      </div>
+    );
 
   return (
     <main>
@@ -139,7 +156,7 @@ useEffect(() => {
         <h1 className="text-2xl font-bold text-center">Office Check-In</h1>
 
         {/* User Info */}
-         <Card>
+        <Card>
           <CardHeader>
             <CardTitle>Employee List</CardTitle>
           </CardHeader>
@@ -175,11 +192,19 @@ useEffect(() => {
 
         {/* Google Map */}
         <div style={{ width: "100%", height: "400px" }}>
-          <GoogleMap mapContainerStyle={{ width: "100%", height: "100%" }} center={coords || OFFICE_CENTER} zoom={17}>
+          <GoogleMap
+            mapContainerStyle={{ width: "100%", height: "100%" }}
+            center={coords || OFFICE_CENTER}
+            zoom={17}
+          >
             <Circle
               center={OFFICE_CENTER}
               radius={OFFICE_RADIUS_METERS}
-              options={{ strokeColor: "#3b82f6", fillColor: "#93c5fd", fillOpacity: 0.2 }}
+              options={{
+                strokeColor: "#3b82f6",
+                fillColor: "#93c5fd",
+                fillOpacity: 0.2,
+              }}
             />
             {coords && <Marker position={coords} label="You" />}
             <Marker position={OFFICE_CENTER} label="Office" />
@@ -211,9 +236,21 @@ useEffect(() => {
         </div>
 
         {/* Status */}
-        {!inside && <p className="text-red-500 mt-2 text-center">You are outside office radius.</p>}
-        {inside && !checkedIn && <p className="text-green-600 mt-2 text-center">You are inside office radius. You can check in.</p>}
-        {checkedIn && <p className="text-blue-600 mt-2 text-center">Checked in successfully.</p>}
+        {!inside && (
+          <p className="text-red-500 mt-2 text-center">
+            You are outside office radius.
+          </p>
+        )}
+        {inside && !checkedIn && (
+          <p className="text-green-600 mt-2 text-center">
+            You are inside office radius. You can check in.
+          </p>
+        )}
+        {checkedIn && (
+          <p className="text-blue-600 mt-2 text-center">
+            Checked in successfully.
+          </p>
+        )}
       </div>
     </main>
   );
