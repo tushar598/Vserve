@@ -94,7 +94,7 @@ export default function AdminPanel() {
         setAdmin(adminData.employee || null);
         setUsers(empData.employees || []);
         console.log("users", empData.employees);
-        const attRes = await fetch("/api/attendance", {
+        const attRes = await fetch("/api/attendance/allattendance", {
           credentials: "include",
         });
         const lateRes = await fetch("/api/late-requests", {
@@ -102,25 +102,27 @@ export default function AdminPanel() {
         });
         if (attRes.ok) {
           const data = await attRes.json();
-          setAttRows(
-            data.attendance?.map((r: Attendance) => ({
-              date: r.date,
-              status:
-                r.status === "on-time"
-                  ? "On-time"
-                  : r.lateApproved
-                  ? "Late (Approved)"
-                  : r.status === "late"
-                  ? "Late"
-                  : "—",
-              checkIn: r.checkInTime
-                ? new Date(r.checkInTime).toLocaleTimeString()
-                : undefined,
-              checkOut: r.checkOutTime
-                ? new Date(r.checkOutTime).toLocaleTimeString()
-                : undefined,
-            })) || []
-          );
+       setAttRows(
+  (data.attendance || []).map((r: any) => ({
+    phone: r.phone,
+    date: r.date,
+    status:
+      r.status === "on-time"
+        ? "On-time"
+        : r.lateApproved
+        ? "Late (Approved)"
+        : r.status === "late"
+        ? "Late"
+        : "—",
+    checkIn: r.checkInTime
+      ? new Date(r.checkInTime).toLocaleTimeString()
+      : undefined,
+    checkOut: r.checkOutTime
+      ? new Date(r.checkOutTime).toLocaleTimeString()
+      : undefined,
+  }))
+);
+
         }
         if (lateRes.ok) {
           const data = await lateRes.json();

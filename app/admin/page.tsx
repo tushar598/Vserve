@@ -1,6 +1,6 @@
 "use client"
 
-import AdminPanel from "@/components/admin/admin-panel"
+import AdminPanel from "@/components/admin/AdminPanel"
 import NavBar from "@/components/Navbar"
 export default function AdminPage() {
   return (
