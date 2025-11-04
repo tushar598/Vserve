@@ -7,14 +7,7 @@ import LateRequests from "../admin/LateRequests";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Loader2,
-
-  AlertCircle,
-
-  User,
- 
-} from "lucide-react";
+import { Loader2, AlertCircle, User } from "lucide-react";
 
 type User = {
   _id: string;
@@ -33,7 +26,6 @@ type AttendanceRow = {
   checkOut?: string;
 };
 
-
 type LateReq = {
   id: string;
   phone: string;
@@ -48,7 +40,7 @@ export default function AdminPanel() {
   const router = useRouter();
   const [admin, setAdmin] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([]);
- const [attRows, setAttRows] = useState<AttendanceRow[]>([]);
+  const [attRows, setAttRows] = useState<AttendanceRow[]>([]);
   const [lateReqs, setLateReqs] = useState<LateReq[]>([]);
   const [search, setSearch] = useState("");
   const [expandedEmployeeId, setExpandedEmployeeId] = useState<string | null>(
@@ -78,33 +70,34 @@ export default function AdminPanel() {
         const attRes = await fetch("/api/attendance/allattendance", {
           credentials: "include",
         });
-        console.log( "response from admin panel",attRes);
+
         const lateRes = await fetch("/api/late-requests", {
           credentials: "include",
         });
-     if (attRes.ok) {
-  const data = await attRes.json();
-  setAttRows(
-    (data.data || []).map((r: any) => ({
-      phone: r.phone,
-      date: r.date,
-      status:
-        r.status === "on-time"
-          ? "On-time"
-          : r.lateApproved
-          ? "Late (Approved)"
-          : r.status === "late"
-          ? "Late"
-          : "—",
-      checkIn: r.checkInTime
-        ? new Date(r.checkInTime).toLocaleTimeString()
-        : undefined,
-      checkOut: r.checkOutTime
-        ? new Date(r.checkOutTime).toLocaleTimeString()
-        : undefined,
-    }))
-  );
-}
+        if (attRes.ok) {
+          const data = await attRes.json();
+          setAttRows(
+            (data.data || []).map((r: any) => ({
+              phone: r.phone,
+              date: r.date,
+              status:
+                r.status === "on-time"
+                  ? "On-time"
+                  : r.lateApproved
+                  ? "Late (Approved)"
+                  : r.status === "late"
+                  ? "Late"
+                  : "—",
+              checkIn: r.checkInTime
+                ? new Date(r.checkInTime).toLocaleTimeString()
+                : undefined,
+              checkOut: r.checkOutTime
+                ? new Date(r.checkOutTime).toLocaleTimeString()
+                : undefined,
+            }))
+          );
+          console.log("response from admin panel", attRows);
+        }
 
         if (lateRes.ok) {
           const data = await lateRes.json();
@@ -120,8 +113,6 @@ export default function AdminPanel() {
 
     fetchData();
   }, []);
-
-
 
   const updateLate = async (
     id: string,
@@ -204,16 +195,24 @@ export default function AdminPanel() {
         </div>
       </div>
     );
-// same state, useEffect, etc.
-return (
-  <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 md:p-8">
-    <div className="max-w-7xl mx-auto space-y-6">
-      <AdminHeader admin={admin} users={users} pendingLateReqs={pendingLateReqs} />
-   <EmployeeDirectory users={users} />
+  // same state, useEffect, etc.
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 md:p-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <AdminHeader
+          admin={admin}
+          users={users}
+          pendingLateReqs={pendingLateReqs}
+        />
+        <EmployeeDirectory users={users} />
 
-      <AttendanceLogs attRows={attRows} downloadCSV={downloadCSV} />
-      <LateRequests lateReqs={lateReqs} pendingLateReqs={pendingLateReqs} updateLate={updateLate} />
+        <AttendanceLogs attRows={attRows} downloadCSV={downloadCSV} />
+        <LateRequests
+          lateReqs={lateReqs}
+          pendingLateReqs={pendingLateReqs}
+          updateLate={updateLate}
+        />
+      </div>
     </div>
-  </div>
-);
+  );
 }
