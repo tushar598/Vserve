@@ -238,7 +238,7 @@ export default function DashboardPage() {
           {(() => {
             const now = new Date();
             const hour = now.getHours();
-            const withinTime = hour >= 8 && hour < 19; // 8 AM - 7 PM
+            const withinTime = hour >= 6 && hour < 23; // 8 AM - 7 PM
 
             if (!withinTime) {
               return (
@@ -246,7 +246,7 @@ export default function DashboardPage() {
                   disabled
                   className="px-4 py-2 bg-gray-400 text-white rounded cursor-not-allowed"
                 >
-                  Attendance Closed (8:00 AM - 7:00 PM)
+                  Attendance Closed (6:00 AM - 11:00 PM)
                 </button>
               );
             }
@@ -287,13 +287,13 @@ export default function DashboardPage() {
         {(() => {
           const now = new Date();
           const hour = now.getHours();
-          const withinTime = hour >= 8 && hour < 19;
+          const withinTime = hour >= 6 && hour < 23;
 
           if (!withinTime) {
             return (
               <p className="text-red-500 mt-2 text-center">
                 Attendance available only between{" "}
-                <strong>8:00 AM and 7:00 PM</strong>.
+                <strong>6:00 AM and 11:00 PM</strong>.
               </p>
             );
           }

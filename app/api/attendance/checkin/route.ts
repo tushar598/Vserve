@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/db";
 import Employee from "@/models/employee";
 import Attendance from "@/models/attendance";
 import dayjs from "dayjs";
+import { cubicBezier } from "framer-motion";
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,12 +18,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Employee not found" });
 
     // ✅ Define working hours
-    const WORK_START_HOUR = 8;  // 8:00 AM
-    const WORK_END_HOUR = 18;   // 7:00 PM (24-hour format)
+    const WORK_START_HOUR = 6;  // 8:00 AM
+    const WORK_END_HOUR = 23;   // 7:00 PM (24-hour format)
 
     // ✅ Check current time
     const now = dayjs();
     const currentHour = now.hour();
+    console.log("current hours from checkin ", currentHour);
 
     if (currentHour < WORK_START_HOUR || currentHour >= WORK_END_HOUR) {
       return NextResponse.json(

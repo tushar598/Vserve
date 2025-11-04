@@ -18,8 +18,8 @@ export async function POST(req: NextRequest) {
 
     const now = dayjs();
     const currentHour = now.hour();
-    const WORK_START_HOUR = 8;   // 8:00 AM
-    const WORK_END_HOUR = 18;    // 7:00 PM
+    const WORK_START_HOUR = 6;   // 8:00 AM
+    const WORK_END_HOUR = 23;    // 7:00 PM
 
     // ⛔ Access blocked outside allowed hours
     if (currentHour < WORK_START_HOUR || currentHour >= WORK_END_HOUR) {
