@@ -42,7 +42,9 @@ type UserData = {
 };
 
 export default function DashboardPage() {
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
+    null
+  );
   const [inside, setInside] = useState(false);
   const [checkedIn, setCheckedIn] = useState(false);
   const [path, setPath] = useState<Array<[number, number]>>([]);
@@ -177,7 +179,7 @@ export default function DashboardPage() {
   return (
     <main>
       <Navbar />
-      <div className="p-4 max-w-3xl mx-auto space-y-4">
+      <div className="p-4 mt-20 max-w-3xl mx-auto space-y-4">
         <h1 className="text-2xl font-bold text-center">Office Check-In</h1>
 
         {/* User Info */}
@@ -211,7 +213,9 @@ export default function DashboardPage() {
             mapContainerStyle={{ width: "100%", height: "100%" }}
             center={coords || OFFICE_CENTER}
             zoom={17}
-            onLoad={(map) => {(mapRef.current = map)}}
+            onLoad={(map) => {
+              mapRef.current = map;
+            }}
           >
             <Circle
               center={OFFICE_CENTER}
