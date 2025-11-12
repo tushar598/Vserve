@@ -11,6 +11,7 @@ import {
   Calendar,
   FileText,
 } from "lucide-react";
+import Navbar from "@/components/Navbar";
 
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null);
@@ -53,6 +54,8 @@ export default function ProfilePage() {
   }
 
   return (
+    <div>
+      <Navbar />
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-6">
       <Card className="max-w-lg w-full shadow-lg bg-white border-t-4 border-indigo-500">
         <CardHeader className="text-center">
@@ -117,6 +120,7 @@ export default function ProfilePage() {
           )}
         </CardContent>
       </Card>
+    </div>
     </div>
   );
 }
