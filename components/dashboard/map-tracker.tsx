@@ -9,8 +9,8 @@ import {
 } from "@react-google-maps/api";
 
 // ------------------ CONFIG ------------------
-const OFFICE_CENTER = { lat: 23.1575, lng: 75.7997 };
-const OFFICE_RADIUS_METERS = 200000; // 200 meters radius
+const OFFICE_CENTER = { lat: 22.723541, lng: 75.884507 }; //lat: 23.1575, lng: 75.7997 
+const OFFICE_RADIUS_METERS = 200; // 200 meters radius
 const containerStyle = { width: "100%", height: "400px" };
 // --------------------------------------------
 

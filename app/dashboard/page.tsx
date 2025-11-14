@@ -13,8 +13,8 @@ import Navbar from "@/components/Navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 // Constants
-const OFFICE_CENTER = { lat: 23.1575, lng: 75.7997  };
-const OFFICE_RADIUS_METERS = 2000;
+const OFFICE_CENTER = { lat: 22.723541, lng: 75.884507   };
+const OFFICE_RADIUS_METERS = 200;
 
 // Utilities
 const haversineMeters = (coords1: any, coords2: any) => {
