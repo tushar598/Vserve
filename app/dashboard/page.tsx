@@ -36,7 +36,7 @@ const libraries: "places"[] = ["places"];
 type UserData = {
   id: string;
   name: string;
-  email: string;
+  // email: string;
   phone: string;
   role?: string;
 };
@@ -70,7 +70,7 @@ export default function DashboardPage() {
         setUserData({
           id: data.user._id,
           name: data.user.name,
-          email: data.user.email,
+          // email: data.user.email,
           phone: data.user.phone,
           role: data.user.role,
         });
@@ -216,9 +216,9 @@ export default function DashboardPage() {
               <p>
                 <strong>Name:</strong> {userData.name}
               </p>
-              <p>
-                <strong>Email:</strong> {userData.email}
-              </p>
+              {/* <p> */}
+                {/* <strong>Email:</strong> {userData.email} */}
+              {/* </p> */}
               <p>
                 <strong>Phone:</strong> {userData.phone}
               </p>
