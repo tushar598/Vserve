@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 // Constants
 const OFFICE_CENTER = { lat: 22.723541, lng: 75.884507   };
+const BHOPAL_OFFICE_CENTER = { lat: 23.2349541, lng: 77.4354195 };
 const OFFICE_RADIUS_METERS = 200;
 
 // Utilities
@@ -131,7 +132,9 @@ export default function DashboardPage() {
             };
 
             setCoords(c);
-            setInside(haversineMeters(c, OFFICE_CENTER) <= OFFICE_RADIUS_METERS);
+          const insideIndore = haversineMeters(c, OFFICE_CENTER) <= OFFICE_RADIUS_METERS;
+          const insideBhopal = haversineMeters(c, BHOPAL_OFFICE_CENTER) <= OFFICE_RADIUS_METERS;
+          setInside(insideIndore || insideBhopal);
             if (checkedIn) setPath((p) => [...p, [c.lat, c.lng]]);
             if (mapRef.current) mapRef.current.panTo(c);
           }
@@ -250,7 +253,18 @@ export default function DashboardPage() {
                 fillOpacity: 0.2,
               }}
             />
-            <Marker position={OFFICE_CENTER} label="Office" />
+            <Marker position={OFFICE_CENTER} label="Indore Office" />
+
+            <Circle
+              center={BHOPAL_OFFICE_CENTER}
+              radius={OFFICE_RADIUS_METERS}
+              options={{
+                strokeColor: "#10b981",
+                fillColor: "#6ee7b7",
+                fillOpacity: 0.2,
+              }}
+            />
+            <Marker position={BHOPAL_OFFICE_CENTER} label="Bhopal Office" />
             {coords && <Marker position={coords} label="You" />}
             {path.length > 1 && (
               <Polyline
