@@ -97,8 +97,8 @@ export default function EmployeeDirectory({ users }: { users: UserType[] }) {
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-[10px] sm:text-xs font-medium">
-                            <Clock className="w-3 h-3" />
-                            Pending
+                              {/* <Clock className="w-3 h-3" />
+                              Pending */}
                           </span>
                         )}
                       </div>
