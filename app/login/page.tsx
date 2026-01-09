@@ -19,9 +19,7 @@ export default function Login() {
   const router = useRouter();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"executive" | "manager" | "admin">(
-    "executive"
-  );
+  const [role, setRole] = useState<"executive" | "manager">("executive");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -144,7 +142,6 @@ export default function Login() {
               <SelectContent>
                 <SelectItem value="executive">Executive</SelectItem>
                 <SelectItem value="manager">Manager</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
               </SelectContent>
             </Select>
           </div>

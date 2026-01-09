@@ -50,6 +50,11 @@ export default function DashboardPage() {
   const [path, setPath] = useState<Array<[number, number]>>([]);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [currentCoords, setCurrentCoords] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
+  const [show, setShow] = useState(true);
 
   const mapRef = useRef<google.maps.Map | null>(null);
 
@@ -142,6 +147,7 @@ export default function DashboardPage() {
       if (!data.success) throw new Error(data.error);
       setCheckedIn(true);
       setPath([]);
+      setShow(true);
       alert("✅ Checked in successfully!");
     } catch (err: any) {
       alert("❌ Check-in failed: " + err.message);
@@ -163,9 +169,40 @@ export default function DashboardPage() {
       if (!data.success) throw new Error(data.error);
       setCheckedIn(false);
       setPath([]);
+      setShow(false);
       alert("✅ Checked out successfully!");
     } catch (err: any) {
       alert("❌ Check-out failed: " + err.message);
+    }
+  };
+
+  // handler to sent the location of current user to the backend :
+  const handleSendLocation = async () => {
+    if (!coords || !userData?.phone) {
+      return alert("Location or user missing");
+    }
+
+    try {
+      setCurrentCoords(coords);
+
+      const res = await fetch("/api/attendance/sendloc", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone: userData.phone,
+          coords,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        throw new Error(data.error || "Failed to send location");
+      }
+
+      alert("📍 Location sent successfully!");
+    } catch (err: any) {
+      alert("❌ Failed to send location: " + err.message);
     }
   };
 
@@ -285,6 +322,14 @@ export default function DashboardPage() {
               );
             }
           })()}
+          {show && checkedIn && (
+            <button
+              onClick={handleSendLocation}
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded"
+            >
+              Send Location
+            </button>
+          )}
         </div>
 
         {/* Status */}

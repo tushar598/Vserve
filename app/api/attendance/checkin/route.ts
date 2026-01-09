@@ -18,8 +18,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Employee not found" });
 
     // ✅ Define working hours
-    const WORK_START_HOUR = 6;  // 8:00 AM
-    const WORK_END_HOUR = 23;   // 7:00 PM (24-hour format)
+    const WORK_START_HOUR = 6; // 8:00 AM
+    const WORK_END_HOUR = 23; // 7:00 PM (24-hour format)
 
     // ✅ Check current time
     const now = dayjs();
@@ -62,7 +62,10 @@ export async function POST(req: NextRequest) {
     attendance.checkedIn = true; // optional flag if your model supports it
     await attendance.save();
 
-    return NextResponse.json({ success: true, message: "Checked in successfully." });
+    return NextResponse.json({
+      success: true,
+      message: "Checked in successfully.",
+    });
   } catch (err: any) {
     console.error("❌ Check-in error:", err);
     return NextResponse.json(
