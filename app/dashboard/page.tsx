@@ -338,7 +338,7 @@ export default function DashboardPage() {
               return (
                 <button
                   disabled
-                  className="px-6 py-3  text-white rounded-full text-sm cursor-not-allowed"
+                  className="px-6 py-3  text-gray-700 rounded-full text-sm cursor-not-allowed"
                 >
                   Attendance Closed (9:00 AM – 6:00 PM)
                 </button>
