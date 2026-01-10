@@ -5,19 +5,21 @@ import SentLocation from "@/models/sentLocation";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
-import { connectDB } from "@/lib/db"; // adjust if your path differs
+import { connectDB } from "@/lib/db";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-//  to get specific sent locations for an employee (by phone) and optional date filter
+// ==========================
+// GET SENT LOCATIONS
+// ==========================
 export async function GET(req: NextRequest) {
   try {
     await connectDB();
 
     const { searchParams } = new URL(req.url);
     const phone = searchParams.get("phone");
-    const date = searchParams.get("date"); // optional
+    const date = searchParams.get("date"); // optional (YYYY-MM-DD)
 
     // 🔴 Validation
     if (!phone) {
@@ -42,21 +44,25 @@ export async function GET(req: NextRequest) {
       employeeId: employee._id,
     };
 
-    // 📅 Date filter (optional)
+    // 📅 Date filter (IST-safe)
     if (date) {
-          // ✅ Use IST timezone
-    const now = dayjs().tz("Asia/Kolkata");
-      const start = now.toDate();
-      start.setHours(0, 0, 0, 0);
+      const start = dayjs
+        .tz(date, "Asia/Kolkata")
+        .startOf("day")
+        .toDate();
 
-      const end = now.toDate();
-      end.setHours(23, 59, 59, 999);
+      const end = dayjs
+        .tz(date, "Asia/Kolkata")
+        .endOf("day")
+        .toDate();
 
       query.date = { $gte: start, $lte: end };
     }
 
     // 📍 Fetch sent locations
-    const locations = await SentLocation.find(query).sort({ date: 1 }).lean();
+    const locations = await SentLocation.find(query)
+      .sort({ date: 1 })
+      .lean();
 
     return NextResponse.json({
       employee,
@@ -74,7 +80,9 @@ export async function GET(req: NextRequest) {
   }
 }
 
-//  to store a sent location for an employee
+// ==========================
+// POST SENT LOCATION
+// ==========================
 export async function POST(req: NextRequest) {
   try {
     await connectDB();
@@ -101,17 +109,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ✅ Use IST timezone
-    const now = dayjs().tz("Asia/Kolkata");
-    const currentHour = now.hour();
-    // 🗓️ Normalize date (store date only, not time if needed later)
-    const today = new Date();
-    today.setHours(currentHour);
-    today.setMinutes(now.minute());
+    // ✅ Correct IST timestamp (stored as UTC)
+    const timestamp = dayjs()
+      .tz("Asia/Kolkata")
+      .toDate();
+
     // 📍 Create sent location entry
     const sentLocation = await SentLocation.create({
       employeeId: employee._id,
-      date: today,
+      date: timestamp,
       coords: {
         lat: coords.lat,
         lng: coords.lng,
