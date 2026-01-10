@@ -16,7 +16,7 @@ import { set } from "mongoose";
 // Constants
 const OFFICE_CENTER = { lat: 22.723541, lng: 75.884507 };
 const BHOPAL_OFFICE_CENTER = { lat: 23.2349541, lng: 77.4354195 };
-const OFFICE_RADIUS_METERS = 2000000;
+const OFFICE_RADIUS_METERS = 200;
 
 // Utilities
 const haversineMeters = (coords1: any, coords2: any) => {
