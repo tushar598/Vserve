@@ -372,23 +372,38 @@ export default function DashboardPage() {
                   </button>
                 );
               }
-
-              return (
-                <button
-                  onClick={handleCheckOut}
-                  disabled={!inside}
-                  className={`px-6 py-3 rounded-full text-sm font-medium text-white transition ${
-                    inside
-                      ? "bg-red-600 hover:bg-red-700"
-                      : "bg-gray-400 cursor-not-allowed"
-                  }`}
-                >
-                  Check Out
-                </button>
-              );
+              // if (checkedIn) {
+              //   return (
+              //     <button
+              //       onClick={handleCheckOut}
+              //       disabled={!inside}
+              //       className={`px-6 py-3 rounded-full text-sm font-medium text-white transition ${
+              //         inside
+              //           ? "bg-red-600 hover:bg-red-700"
+              //           : "bg-gray-400 cursor-not-allowed"
+              //       }`}
+              //     >
+              //       Check Out
+              //     </button>
+              //   );
+              // }
             })()}
 
-            {show  && (
+            {
+              (checkedIn && (<button
+                onClick={handleCheckOut}
+                disabled={!inside}
+                className={`px-6 py-3 rounded-full text-sm font-medium text-white transition ${
+                  inside
+                    ? "bg-red-600 hover:bg-red-700"
+                    : "bg-gray-400 cursor-not-allowed"
+                }`}
+              >
+                Check Out
+              </button>))
+            }
+
+            {show && (
               <button
                 onClick={handleSendLocation}
                 className="px-6 py-3 rounded-full text-sm font-medium bg-green-600 hover:bg-green-700 text-white transition"

@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import Employee from "@/models/employee";
 import SentLocation from "@/models/sentLocation";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
 import { connectDB } from "@/lib/db"; // adjust if your path differs
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 //  to get specific sent locations for an employee (by phone) and optional date filter
 export async function GET(req: NextRequest) {
@@ -38,10 +44,12 @@ export async function GET(req: NextRequest) {
 
     // 📅 Date filter (optional)
     if (date) {
-      const start = new Date(date);
+          // ✅ Use IST timezone
+    const now = dayjs().tz("Asia/Kolkata");
+      const start = now.toDate();
       start.setHours(0, 0, 0, 0);
 
-      const end = new Date(date);
+      const end = now.toDate();
       end.setHours(23, 59, 59, 999);
 
       query.date = { $gte: start, $lte: end };
@@ -93,10 +101,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // ✅ Use IST timezone
+    const now = dayjs().tz("Asia/Kolkata");
+    const currentHour = now.hour();
     // 🗓️ Normalize date (store date only, not time if needed later)
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
+    today.setHours(currentHour);
+    today.setMinutes(now.minute());
     // 📍 Create sent location entry
     const sentLocation = await SentLocation.create({
       employeeId: employee._id,
