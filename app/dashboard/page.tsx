@@ -16,7 +16,7 @@ import { set } from "mongoose";
 // Constants
 const OFFICE_CENTER = { lat: 22.723541, lng: 75.884507 };
 const BHOPAL_OFFICE_CENTER = { lat: 23.2349541, lng: 77.4354195 };
-const OFFICE_RADIUS_METERS = 200;
+const OFFICE_RADIUS_METERS = 2000000;
 
 // Utilities
 const haversineMeters = (coords1: any, coords2: any) => {
@@ -54,8 +54,8 @@ export default function DashboardPage() {
   const [show, setShow] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-    const WORK_START_HOUR = 9;   // 9:00 AM
-    const WORK_END_HOUR = 18;    // 6:00 PM
+    const WORK_START_HOUR = 0;   // 9:00 AM
+    const WORK_END_HOUR = 24;    // 6:00 PM
 
   const mapRef = useRef<google.maps.Map | null>(null);
 
