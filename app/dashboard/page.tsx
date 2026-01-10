@@ -11,9 +11,10 @@ import {
 import { Geolocation } from "@capacitor/geolocation"; // ✅ Added Capacitor import
 import Navbar from "@/components/Navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { set } from "mongoose";
 
 // Constants
-const OFFICE_CENTER = { lat: 22.723541, lng: 75.884507   };
+const OFFICE_CENTER = { lat: 22.723541, lng: 75.884507 };
 const BHOPAL_OFFICE_CENTER = { lat: 23.2349541, lng: 77.4354195 };
 const OFFICE_RADIUS_METERS = 200;
 
@@ -50,7 +51,11 @@ export default function DashboardPage() {
   const [checkedIn, setCheckedIn] = useState(false);
   const [path, setPath] = useState<Array<[number, number]>>([]);
   const [userData, setUserData] = useState<UserData | null>(null);
+  const [show, setShow] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+    const WORK_START_HOUR = 9;   // 9:00 AM
+    const WORK_END_HOUR = 18;    // 6:00 PM
 
   const mapRef = useRef<google.maps.Map | null>(null);
 
@@ -132,9 +137,11 @@ export default function DashboardPage() {
             };
 
             setCoords(c);
-          const insideIndore = haversineMeters(c, OFFICE_CENTER) <= OFFICE_RADIUS_METERS;
-          const insideBhopal = haversineMeters(c, BHOPAL_OFFICE_CENTER) <= OFFICE_RADIUS_METERS;
-          setInside(insideIndore || insideBhopal);
+            const insideIndore =
+              haversineMeters(c, OFFICE_CENTER) <= OFFICE_RADIUS_METERS;
+            const insideBhopal =
+              haversineMeters(c, BHOPAL_OFFICE_CENTER) <= OFFICE_RADIUS_METERS;
+            setInside(insideIndore || insideBhopal);
             if (checkedIn) setPath((p) => [...p, [c.lat, c.lng]]);
             if (mapRef.current) mapRef.current.panTo(c);
           }
@@ -148,7 +155,7 @@ export default function DashboardPage() {
     startTracking();
 
     return () => {
-      if (watchId) Geolocation.clearWatch({ id:String(watchId)  });
+      if (watchId) Geolocation.clearWatch({ id: String(watchId) });
     };
   }, [checkedIn]);
 
@@ -169,6 +176,7 @@ export default function DashboardPage() {
       if (!data.success) throw new Error(data.error);
       setCheckedIn(true);
       setPath([]);
+      setShow(true);
       alert("✅ Checked in successfully!");
     } catch (err: any) {
       alert("❌ Check-in failed: " + err.message);
@@ -190,9 +198,39 @@ export default function DashboardPage() {
       if (!data.success) throw new Error(data.error);
       setCheckedIn(false);
       setPath([]);
+      setShow(false);
+      setTimeout(() => setShow(true), 5000);
       alert("✅ Checked out successfully!");
     } catch (err: any) {
       alert("❌ Check-out failed: " + err.message);
+    }
+  };
+
+  // handler to sent the location of current user to the backend :
+  const handleSendLocation = async () => {
+    if (!coords || !userData?.phone) {
+      return alert("Location or user missing");
+    }
+
+    try {
+      const res = await fetch("/api/attendance/sendloc", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone: userData.phone,
+          coords,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        throw new Error(data.error || "Failed to send location");
+      }
+
+      alert("📍 Location sent successfully!");
+    } catch (err: any) {
+      alert("❌ Failed to send location: " + err.message);
     }
   };
 
@@ -204,91 +242,105 @@ export default function DashboardPage() {
     );
 
   return (
-    <main>
-      <Navbar />
-      <div className="p-4 mt-20 max-w-3xl mx-auto space-y-4">
-        <h1 className="text-2xl font-bold text-center">Office Check-In</h1>
+  <main className="min-h-screen bg-gray-100">
+    <Navbar />
 
-        {/* User Info */}
-        {userData && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Your Profile</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>
-                <strong>Name:</strong> {userData.name}
+    <div className="max-w-3xl mx-auto px-4 pt-20 md:py-25 space-y-3">
+      {/* Page Title */}
+      <h1 className="text-2xl md:text-3xl text-center font-bold  text-black ">
+        Office Check-In
+      </h1>
+
+      {/* User Profile Card */}
+      {userData && (
+        <Card className="rounded-3xl shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-lg ">
+              Your Profile
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-md text-gray-700">
+            <p >
+              <span className="text-lg font-semibold" >Name: </span> {userData.name}
+            </p>
+            <p >
+              <span className="text-lg font-semibold" >Phone: </span> {userData.phone}
+            </p>
+            {userData.role && (
+              <p >
+                <span className="text-lg font-semibold" >Role: </span> {userData.role}
               </p>
-              {/* <p> */}
-                {/* <strong>Email:</strong> {userData.email} */}
-              {/* </p> */}
-              <p>
-                <strong>Phone:</strong> {userData.phone}
-              </p>
-              {userData.role && (
-                <p>
-                  <strong>Role:</strong> {userData.role}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Google Map */}
-        <div style={{ width: "100%", height: "400px" }}>
-          <GoogleMap
-            mapContainerStyle={{ width: "100%", height: "100%" }}
-            center={coords || OFFICE_CENTER}
-            zoom={17}
-            onLoad={(map) => {
-              mapRef.current = map;
-            }}
-          >
-            <Circle
-              center={OFFICE_CENTER}
-              radius={OFFICE_RADIUS_METERS}
-              options={{
-                strokeColor: "#3b82f6",
-                fillColor: "#93c5fd",
-                fillOpacity: 0.2,
-              }}
-            />
-            <Marker position={OFFICE_CENTER} label="Indore Office" />
-
-            <Circle
-              center={BHOPAL_OFFICE_CENTER}
-              radius={OFFICE_RADIUS_METERS}
-              options={{
-                strokeColor: "#10b981",
-                fillColor: "#6ee7b7",
-                fillOpacity: 0.2,
-              }}
-            />
-            <Marker position={BHOPAL_OFFICE_CENTER} label="Bhopal Office" />
-            {coords && <Marker position={coords} label="You" />}
-            {path.length > 1 && (
-              <Polyline
-                path={path.map(([lat, lng]) => ({ lat, lng }))}
-                options={{ strokeColor: "#16a34a", strokeWeight: 4 }}
-              />
             )}
-          </GoogleMap>
-        </div>
+          </CardContent>
+        </Card>
+      )}
 
-        {/* Buttons */}
-        <div className="text-center space-x-4">
+      {/* Map Card */}
+      <Card className="rounded-3xl shadow-sm overflow-hidden">
+        <CardHeader>
+          <CardTitle className="text-lg
+         ">Live Location</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="w-full h-[300px] sm:h-[400px]">
+            <GoogleMap
+              mapContainerStyle={{ width: "100%", height: "100%" }}
+              center={coords || OFFICE_CENTER}
+              zoom={17}
+              onLoad={(map) => {
+                mapRef.current = map;
+              }}
+            >
+              <Circle
+                center={OFFICE_CENTER}
+                radius={OFFICE_RADIUS_METERS}
+                options={{
+                  strokeColor: "#3b82f6",
+                  fillColor: "#93c5fd",
+                  fillOpacity: 0.2,
+                }}
+              />
+              <Marker position={OFFICE_CENTER} label="Indore Office" />
+
+              <Circle
+                center={BHOPAL_OFFICE_CENTER}
+                radius={OFFICE_RADIUS_METERS}
+                options={{
+                  strokeColor: "#10b981",
+                  fillColor: "#6ee7b7",
+                  fillOpacity: 0.2,
+                }}
+              />
+              <Marker position={BHOPAL_OFFICE_CENTER} label="Bhopal Office" />
+
+              {coords && <Marker position={coords} label="You" />}
+
+              {path.length > 1 && (
+                <Polyline
+                  path={path.map(([lat, lng]) => ({ lat, lng }))}
+                  options={{ strokeColor: "#16a34a", strokeWeight: 4 }}
+                />
+              )}
+            </GoogleMap>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Action Buttons */}
+      <div>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 py-6">
           {(() => {
             const now = new Date();
             const hour = now.getHours();
-            const withinTime = hour >= 6 && hour < 23;
+            const withinTime = hour >= WORK_START_HOUR && hour < WORK_END_HOUR;
 
             if (!withinTime) {
               return (
                 <button
                   disabled
-                  className="px-4 py-2 bg-gray-400 text-white rounded cursor-not-allowed"
+                  className="px-6 py-3  text-white rounded-full text-sm cursor-not-allowed"
                 >
-                  Attendance Closed (6:00 AM - 11:00 PM)
+                  Attendance Closed (9:00 AM – 6:00 PM)
                 </button>
               );
             }
@@ -298,7 +350,7 @@ export default function DashboardPage() {
                 <button
                   onClick={handleCheckIn}
                   disabled={!canCheckIn}
-                  className={`px-4 py-2 rounded text-white ${
+                  className={`px-6 py-3 rounded-full text-sm font-medium text-white transition ${
                     canCheckIn
                       ? "bg-blue-600 hover:bg-blue-700"
                       : "bg-gray-400 cursor-not-allowed"
@@ -307,50 +359,57 @@ export default function DashboardPage() {
                   Check In
                 </button>
               );
-            } else {
-              return (
-                <button
-                  onClick={handleCheckOut}
-                  disabled={!inside}
-                  className={`px-4 py-2 rounded text-white ${
-                    inside
-                      ? "bg-red-600 hover:bg-red-700"
-                      : "bg-gray-400 cursor-not-allowed"
-                  }`}
-                >
-                  Check Out
-                </button>
-              );
             }
-          })()}
-        </div>
 
-        {/* Status */}
+            return (
+              <button
+                onClick={handleCheckOut}
+                disabled={!inside}
+                className={`px-6 py-3 rounded-full text-sm font-medium text-white transition ${
+                  inside
+                    ? "bg-red-600 hover:bg-red-700"
+                    : "bg-gray-400 cursor-not-allowed"
+                }`}
+              >
+                Check Out
+              </button>
+            );
+          })()}
+
+          {show && checkedIn && (
+            <button
+              onClick={handleSendLocation}
+              className="px-6 py-3 rounded-full text-sm font-medium bg-green-600 hover:bg-green-700 text-white transition"
+            >
+              Send Location
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Status Messages */}
+      <div className="text-center text-sm">
         {(() => {
           const now = new Date();
           const hour = now.getHours();
-          const withinTime = hour >= 6 && hour < 23;
+          const withinTime = hour >= WORK_START_HOUR && hour < WORK_END_HOUR;
 
           if (!withinTime) {
             return (
-              <p className="text-red-500 mt-2 text-center">
+              <p className="text-red-500">
                 Attendance available only between{" "}
-                <strong>6:00 AM and 11:00 PM</strong>.
+                <strong>9:00 AM and 6:00 PM</strong>.
               </p>
             );
           }
 
           if (!inside) {
-            return (
-              <p className="text-red-500 mt-2 text-center">
-                You are outside office radius.
-              </p>
-            );
+            return <p className="text-red-500">You are outside office radius.</p>;
           }
 
           if (inside && !checkedIn) {
             return (
-              <p className="text-green-600 mt-2 text-center">
+              <p className="text-green-600">
                 You are inside office radius. You can check in.
               </p>
             );
@@ -358,8 +417,8 @@ export default function DashboardPage() {
 
           if (checkedIn) {
             return (
-              <p className="text-blue-600 mt-2 text-center">
-                Checked in successfully.
+              <p className="text-blue-600">
+                Checked in successfully. Location tracking active.
               </p>
             );
           }
@@ -367,6 +426,8 @@ export default function DashboardPage() {
           return null;
         })()}
       </div>
-    </main>
-  );
+    </div>
+  </main>
+);
+
 }

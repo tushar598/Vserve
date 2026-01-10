@@ -1,6 +1,5 @@
 "use client";
 
-import AdminHeader from "../admin/AdminHeader";
 import EmployeeDirectory from "../admin/EmployeeDirectory";
 import AttendanceLogs from "../admin/AttendanceLogs";
 import LateRequests from "../admin/LateRequests";
@@ -67,21 +66,19 @@ export default function AdminPanel() {
 
         setAdmin(adminData.employee || null);
         setUsers(empData.employees || []);
-        console.log("users", empData.employees);
         const attRes = await fetch("/api/attendance/allattendance", {
           credentials: "include",
         });
 
-        const lateRes = await fetch("/api/late-requests", {
-          credentials: "include",
-        });
+        // const lateRes = await fetch("/api/late-requests", {
+        //   credentials: "include",
+        // });
         if (attRes.ok) {
           const data = await attRes.json();
-          console.log("attendance data", data);
           setAttRows(
             (data.data || []).map((r: any) => ({
               phone: r.phone,
-              name : r.name,
+              name: r.name,
               date: r.date,
               status:
                 r.status === "on-time"
@@ -99,13 +96,12 @@ export default function AdminPanel() {
                 : undefined,
             }))
           );
-          console.log("response from admin panel", attRows);
         }
 
-        if (lateRes.ok) {
-          const data = await lateRes.json();
-          setLateReqs(data.requests || []);
-        }
+        // if (lateRes.ok) {
+        //   const data = await lateRes.json();
+        //   setLateReqs(data.requests || []);
+        // }
       } catch (err: any) {
         console.error(err);
         setError(err.message);
@@ -165,7 +161,7 @@ export default function AdminPanel() {
 
   const openUserProfile = (id: string) => {
     const user = users.find((u) => u._id === id);
-    console.log("user", user);
+    
     if (!user) return alert("User not found");
     router.push(`/profile/employee/${user._id}`);
   };
@@ -202,19 +198,14 @@ export default function AdminPanel() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
-        <AdminHeader
-          admin={admin}
-          users={users}
-          pendingLateReqs={pendingLateReqs}
-        />
         <EmployeeDirectory users={users} />
 
         <AttendanceLogs attRows={attRows} downloadCSV={downloadCSV} />
-        <LateRequests
+        {/* <LateRequests
           lateReqs={lateReqs}
           pendingLateReqs={pendingLateReqs}
           updateLate={updateLate}
-        />
+        /> */}
       </div>
     </div>
   );

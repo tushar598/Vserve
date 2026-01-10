@@ -19,9 +19,7 @@ export default function Login() {
   const router = useRouter();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"executive" | "manager" | "admin">(
-    "executive"
-  );
+  const [role, setRole] = useState<"executive">("executive");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -130,24 +128,6 @@ export default function Login() {
             />
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="role" className="text-gray-700">
-              Login as
-            </Label>
-            <Select value={role} onValueChange={(v: any) => setRole(v)}>
-              <SelectTrigger
-                id="role"
-                className="rounded-lg focus-visible:ring-blue-500"
-              >
-                <SelectValue placeholder="Select role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="executive">Executive</SelectItem>
-                <SelectItem value="manager">Manager</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
 
           {error && (
             <p className="text-sm text-red-600 text-center font-medium">

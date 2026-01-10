@@ -18,8 +18,7 @@ export async function POST(req: NextRequest) {
 
     const now = dayjs();
     const currentHour = now.hour();
-    const WORK_START_HOUR = 6;   // 8:00 AM
-    const WORK_END_HOUR = 23;    // 7:00 PM
+    const WORK_START_HOUR = 9;   // 9:00 AM
     const today = now.startOf("day").toDate();
 
     // 🔍 Find today's attendance

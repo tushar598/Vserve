@@ -142,20 +142,6 @@ export default function Register() {
               <Input id="password" type="password" placeholder="Enter password" value={formData.password} onChange={(e) => handleChange("password", e.target.value)} />
             </div>
 
-            {/* Role */}
-            <div className="grid gap-2">
-              <Label htmlFor="role">Role</Label>
-              <Select value={formData.role} onValueChange={(v: any) => handleChange("role", v)}>
-                <SelectTrigger id="role" aria-label="Select role">
-                  <SelectValue placeholder="Select role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="executive">Executive</SelectItem>
-                  <SelectItem value="manager">Manager</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </>
         )}
 

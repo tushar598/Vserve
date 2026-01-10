@@ -18,15 +18,16 @@ export async function POST(req: NextRequest) {
 
     const now = dayjs();
     const currentHour = now.hour();
-    const WORK_START_HOUR = 6;   // 8:00 AM
-    const WORK_END_HOUR = 23;    // 7:00 PM
+    const WORK_START_HOUR = 9; // 9:00 AM
+    const WORK_END_HOUR = 18; // 6:00 PM
 
     // ⛔ Access blocked outside allowed hours
     if (currentHour < WORK_START_HOUR || currentHour >= WORK_END_HOUR) {
       return NextResponse.json({
         success: false,
         accessDenied: true,
-        message: "Access restricted: system available between 8:00 AM and 7:00 PM only.",
+        message:
+          "Access restricted: system available between 9:00 AM and 6:00 PM only.",
       });
     }
 
@@ -37,8 +38,13 @@ export async function POST(req: NextRequest) {
       date: { $gte: today },
     });
 
-    // ✅ Auto-checkout safeguard (if still checked in after 7 PM)
-    if (attendance && attendance.checkInTime && !attendance.checkOutTime && currentHour >= WORK_END_HOUR) {
+    // ✅ Auto-checkout safeguard (if still checked in after 6 PM)
+    if (
+      attendance &&
+      attendance.checkInTime &&
+      !attendance.checkOutTime &&
+      currentHour >= WORK_END_HOUR
+    ) {
       attendance.checkOutTime = now.toDate();
       attendance.checkOutLocation = { auto: true };
       attendance.checkedIn = false;
