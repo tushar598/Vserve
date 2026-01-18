@@ -441,7 +441,7 @@ export default function DashboardPage() {
               const withinTime =
                 hour >= WORK_START_HOUR && hour < WORK_END_HOUR;
 
-              // if (!withinTime) return null;
+              if (!withinTime) return null;
 
               return (
                 show && (
