@@ -35,19 +35,21 @@ export async function POST(req: NextRequest) {
     const now = dayjs().tz("Asia/Kolkata");
     const todayStart = now.startOf("day").toDate();
 
+    type LeanAttendance = {
+      checkInTime?: Date;
+    };
+
     // 🔎 Check attendance
-    const attendance = (await Attendance.findOne({
+    const attendance = await Attendance.findOne({
       employee: employee._id,
       date: { $gte: todayStart },
-      checkedIn: true,
-    }).lean()) as {
-      checkInTime?: Date;
-    } | null;
+      checkInTime: { $exists: true },
+    }).lean<LeanAttendance | null>();
 
     return NextResponse.json({
       success: true,
       checkedIn: Boolean(attendance),
-      checkInTime: attendance?.checkInTime || null,
+      checkInTime: attendance?.checkInTime ?? null,
     });
   } catch (err) {
     console.error("❌ isCheckin error:", err);
