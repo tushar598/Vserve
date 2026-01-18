@@ -305,6 +305,7 @@ export default function AttendanceLogs({
       );
     });
 
+
   return (
     <Card className="shadow-lg border-0 overflow-hidden w-full">
       {/* Header */}

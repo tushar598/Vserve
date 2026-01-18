@@ -1,3 +1,4 @@
+
 "use client";
 
 import EmployeeDirectory from "../admin/EmployeeDirectory";
@@ -24,6 +25,8 @@ type AttendanceRow = {
   status: string;
   checkIn?: string;
   checkOut?: string;
+  location?: string;
+  department?: string;
 };
 
 type LateReq = {
@@ -44,10 +47,24 @@ export default function AdminPanel() {
   const [lateReqs, setLateReqs] = useState<LateReq[]>([]);
   const [search, setSearch] = useState("");
   const [expandedEmployeeId, setExpandedEmployeeId] = useState<string | null>(
-    null
+    null,
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // 🔹 ADDED: store raw attendance separately
+  const [rawAttendance, setRawAttendance] = useState<any[]>([]);
+
+  // 🔹 ADDED: employee phone → location map
+  const employeeLocationMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    users.forEach((u: any) => {
+      if (u.phone && u.location) {
+        map[u.phone] = u.location;
+      }
+    });
+    return map;
+  }, [users]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -66,42 +83,16 @@ export default function AdminPanel() {
 
         setAdmin(adminData.employee || null);
         setUsers(empData.employees || []);
+
         const attRes = await fetch("/api/attendance/allattendance", {
           credentials: "include",
         });
 
-        // const lateRes = await fetch("/api/late-requests", {
-        //   credentials: "include",
-        // });
         if (attRes.ok) {
           const data = await attRes.json();
-          setAttRows(
-            (data.data || []).map((r: any) => ({
-              phone: r.phone,
-              name: r.name,
-              date: r.date,
-              status:
-                r.status === "on-time"
-                  ? "On-time"
-                  : r.lateApproved
-                  ? "Late (Approved)"
-                  : r.status === "late"
-                  ? "Late"
-                  : "—",
-              checkIn: r.checkInTime
-                ? new Date(r.checkInTime).toLocaleTimeString()
-                : undefined,
-              checkOut: r.checkOutTime
-                ? new Date(r.checkOutTime).toLocaleTimeString()
-                : undefined,
-            }))
-          );
+          // 🔹 ADDED: store raw attendance only
+          setRawAttendance(data.data || []);
         }
-
-        // if (lateRes.ok) {
-        //   const data = await lateRes.json();
-        //   setLateReqs(data.requests || []);
-        // }
       } catch (err: any) {
         console.error(err);
         setError(err.message);
@@ -113,28 +104,34 @@ export default function AdminPanel() {
     fetchData();
   }, []);
 
-  // const updateLate = async (
-  //   id: string,
-  //   status: "approved" | "rejected",
-  //   remarks: string
-  // ) => {
-  //   try {
-  //     const res = await fetch(`/api/late-requests/${id}`, {
-  //       method: "PATCH",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({ status, remarks }),
-  //       credentials: "include",
-  //     });
-  //     if (!res.ok) throw new Error("Failed to update late request");
+  // 🔹 ADDED: build attendance rows AFTER users + attendance are ready
+  useEffect(() => {
+    if (!rawAttendance.length || !users.length) return;
 
-  //     setLateReqs((prev) =>
-  //       prev.map((r) => (r.id === id ? { ...r, status, remarks } : r))
-  //     );
-  //   } catch (err: any) {
-  //     console.error(err);
-  //     alert("Error updating late request: " + err.message);
-  //   }
-  // };
+    setAttRows(
+      rawAttendance.map((r: any) => ({
+        phone: r.phone,
+        name: r.name,
+        date: r.date,
+        department: r.department,
+        location: employeeLocationMap[r.phone] || "—",
+        status:
+          r.status === "on-time"
+            ? "On-time"
+            : r.lateApproved
+              ? "Late (Approved)"
+              : r.status === "late"
+                ? "Late"
+                : "—",
+        checkIn: r.checkInTime
+          ? new Date(r.checkInTime).toLocaleTimeString()
+          : undefined,
+        checkOut: r.checkOutTime
+          ? new Date(r.checkOutTime).toLocaleTimeString()
+          : undefined,
+      })),
+    );
+  }, [rawAttendance, employeeLocationMap, users]);
 
   const downloadCSV = () => {
     const header = ["Phone", "Date", "Status", "Check-in", "Check-out"];
@@ -143,8 +140,8 @@ export default function AdminPanel() {
       lines.push(
         [r.phone, r.date, r.status, r.checkIn || "", r.checkOut || ""]
           .map((v) => `"${v}"`)
-          .join(",")
-      )
+          .join(","),
+      ),
     );
     const blob = new Blob([lines.join("\n")], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -160,12 +157,6 @@ export default function AdminPanel() {
   const handleEmployeeClick = () => {
     router.push("/admin/employee");
   };
-
-  // const pendingLateReqs = lateReqs.filter((r) => r.status === "pending");
-
-  // const toggleEmployeeExpand = (id: string) => {
-  //   setExpandedEmployeeId((prev) => (prev === id ? null : id));
-  // };
 
   if (loading)
     return (
@@ -191,7 +182,7 @@ export default function AdminPanel() {
         </div>
       </div>
     );
-  // same state, useEffect, etc.
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 md:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -200,16 +191,11 @@ export default function AdminPanel() {
             onClick={handleEmployeeClick}
             className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-2 rounded"
           >
-            {" "}
-            Employee Directory{" "}
+            Employee Directory
           </button>
         </div>
+
         <AttendanceLogs attRows={attRows} downloadCSV={downloadCSV} />
-        {/* <LateRequests
-          lateReqs={lateReqs}
-          pendingLateReqs={pendingLateReqs}
-          updateLate={updateLate}
-        /> */}
       </div>
     </div>
   );
