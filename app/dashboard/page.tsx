@@ -48,6 +48,8 @@ export default function DashboardPage() {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
     null,
   );
+  // Inside your component
+const [permissionError, setPermissionError] = useState<string | null>(null);
   const [inside, setInside] = useState(false);
   const [checkedIn, setCheckedIn] = useState(false);
   const [path, setPath] = useState<Array<[number, number]>>([]);
@@ -208,6 +210,7 @@ useEffect(() => {
     }
   };
 
+
   // Helper function to keep code clean
   const updateLocationState = (lat: number, lng: number) => {
     const c = { lat, lng };
@@ -349,6 +352,29 @@ useEffect(() => {
       alert("❌ Failed to send location: " + err.message);
     }
   };
+
+  const forceRequestLocation = () => {
+  if (!("geolocation" in navigator)) {
+    setPermissionError("Browser does not support geolocation.");
+    return;
+  }
+
+  // Use the native Browser API directly for a cleaner test
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      console.log("Success!", pos);
+      setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+      setPermissionError(null);
+    },
+    (err) => {
+      console.error(err);
+      if (err.code === 1) setPermissionError("You denied location access. Please reset it in browser settings.");
+      if (err.code === 2) setPermissionError("Position unavailable.");
+      if (err.code === 3) setPermissionError("Timed out.");
+    },
+    { enableHighAccuracy: true, timeout: 5000 }
+  );
+};
 
   if (!isLoaded)
     return (
@@ -532,6 +558,13 @@ useEffect(() => {
                 )
               );
             })()}
+            
+<button 
+  onClick={forceRequestLocation}
+  className="bg-blue-600 text-white px-4 py-2 rounded-lg mb-4"
+>
+  📍 Grant Location Permission
+</button>
           </div>
         </div>
 
