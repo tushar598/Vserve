@@ -45,19 +45,18 @@ export async function GET(req: NextRequest) {
       ? dayjs.tz(date, "Asia/Kolkata").format("YYYY-MM-DD")
       : dayjs().tz("Asia/Kolkata").format("YYYY-MM-DD");
 
-    console.log("Searching for date string:", targetDateStr);
-    console.log("For Employee ID:", employee._id);
+   
 
     // 🧠 1. Query the pre-calculated distance from our new ledger
     const distanceRecord = (await DailyDistance.findOne({
       employeeId: employee._id,
       date: targetDateStr,
     })) as IDailyDistance | null; // Tell TS it could be the interface or null
-    console.log("distanceRecord:", distanceRecord);
+
 
     const totalDistanceKm = distanceRecord ? distanceRecord.totalKm : 0;
 
-    console.log("totalDistanceKm:", totalDistanceKm);
+
 
     // 🧠 Build query
     const query: any = {
