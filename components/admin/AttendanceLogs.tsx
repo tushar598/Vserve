@@ -278,7 +278,7 @@ export default function AttendanceLogs({
   }
 
   const handleRowClick = (phone: string, date: string) => {
-    const formattedDate = new Date(date).toISOString().split("T")[0];
+    const formattedDate = date.split("T")[0].split(" ")[0];
     router.push(`/admin/sentlocation/${phone}?date=${formattedDate}`);
   };
 
