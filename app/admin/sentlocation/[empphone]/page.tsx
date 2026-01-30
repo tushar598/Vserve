@@ -16,8 +16,11 @@ import {
   Navigation,
   Loader2,
   AlertCircle,
+  ArrowLeft,
   Hash,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 type SentLocationType = {
   _id: string;
@@ -130,7 +133,17 @@ const SentLocation = ({ params }: { params: { empphone: string } }) => {
   return (
     <>
       <NavBar />
+     
       <div className="min-h-screen bg-slate-50/50 pb-12 pt-20">
+        <div className="px-4 sm:px-6 py-5">
+        {/* Back Button */}
+            <Link href="/admin">
+              <Button variant="ghost" className="mb-4">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Admin Panel
+              </Button>
+            </Link>
+     </div>
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           {/* Header Section */}
           <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">

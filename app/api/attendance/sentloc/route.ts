@@ -18,13 +18,13 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const phone = searchParams.get("phone");
-    const date = searchParams.get("date"); // optional
+    const date = searchParams.get("date"); // YYYY-MM-DD
 
     // 🔴 Validation
     if (!phone) {
       return NextResponse.json(
         { success: false, error: "Phone is required" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -34,49 +34,41 @@ export async function GET(req: NextRequest) {
     if (!employee) {
       return NextResponse.json(
         { success: false, error: "Employee not found" },
-        { status: 404 },
+        { status: 404 }
       );
     }
 
-    // 🎯 FIX 1: Normalize the target date string
-    // This ensures that whether we get a date from the frontend or use "now",
-    // it's always in the Asia/Kolkata YYYY-MM-DD format.
+    // 🎯 FIX: Normalize the target date string
+    // If date is provided, use it. If not, default to Today.
     const targetDateStr = date
       ? dayjs.tz(date, "Asia/Kolkata").format("YYYY-MM-DD")
       : dayjs().tz("Asia/Kolkata").format("YYYY-MM-DD");
 
-   
-
-    // 🧠 1. Query the pre-calculated distance from our new ledger
+    // 🧠 1. Query the pre-calculated distance
     const distanceRecord = (await DailyDistance.findOne({
       employeeId: employee._id,
       date: targetDateStr,
-    })) as IDailyDistance | null; // Tell TS it could be the interface or null
-
+    })) as IDailyDistance | null;
 
     const totalDistanceKm = distanceRecord ? distanceRecord.totalKm : 0;
 
+    // 🧠 2. Build Query for Locations
+    // We use targetDateStr to create the start/end times.
+    // This ensures consistency: distance and locations are always for the same day.
+    const targetDateObj = dayjs.tz(targetDateStr, "Asia/Kolkata");
+    
+    const start = targetDateObj.startOf("day").toDate(); // 00:00:00.000
+    const end = targetDateObj.endOf("day").toDate();     // 23:59:59.999
 
-
-    // 🧠 Build query
     const query: any = {
       employeeId: employee._id,
+      date: { $gte: start, $lte: end }, // ✅ Always filter by the target date
     };
-
-    // 📅 Date filter (optional)
-    if (date) {
-      // ✅ Use IST timezone
-      const now = dayjs().tz("Asia/Kolkata");
-      const start = now.toDate();
-      start.setHours(0, 0, 0, 0);
-
-      const end = now.toDate();
-      end.setHours(23, 59, 59, 999);
-      query.date = { $gte: start, $lte: end };
-    }
 
     // 📍 Fetch sent locations
     const locations = await SentLocation.find(query).sort({ date: 1 }).lean();
+
+    // console.log("Locations found:", locations.length, "for date:", targetDateStr);
 
     return NextResponse.json({
       employee,
@@ -90,11 +82,10 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(
       { success: false, error: "Internal server error" },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
-
 
 
 export async function POST(req: NextRequest) {
