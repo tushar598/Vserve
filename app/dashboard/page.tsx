@@ -622,7 +622,6 @@
 //   );
 // }
 
-
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -1118,7 +1117,7 @@ export default function DashboardPage() {
               const hour = now.getHours();
               const withinTime =
                 hour >= WORK_START_HOUR && hour < WORK_END_HOUR;
-
+              if (!withinTime) return null;
               return (
                 show && (
                   // ✅ Updated Send Location Button
@@ -1138,7 +1137,7 @@ export default function DashboardPage() {
             })()}
 
             {/* ✅ Updated Grant Permission Button */}
-            <button
+            {/* <button
               onClick={forceRequestLocation}
               disabled={isRequestingPermission} // Disabled when loading
               className={`px-6 py-3 rounded-full text-sm font-medium text-white mt-4 mb-4 transition ${
@@ -1150,7 +1149,7 @@ export default function DashboardPage() {
               {isRequestingPermission
                 ? "Locating..."
                 : "📍 Grant Location Permission"}
-            </button>
+            </button> */}
           </div>
         </div>
 
