@@ -1,10 +1,11 @@
-
-
 "use client";
 
 import React, { useEffect, useState } from "react";
 // In your actual Next.js app, change this import to: import { useSearchParams } from "next/navigation";
 import { useSearchParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import  Link  from "next/link";
+import { ArrowLeft } from "lucide-react";
 import NavBar from "@/components/Navbar";
 import {
   MapPin,
@@ -16,17 +17,13 @@ import {
   Navigation,
   Loader2,
   AlertCircle,
-  ArrowLeft,
   Hash,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
 
 type SentLocationType = {
   _id: string;
   employeeId: string;
   date: string;
-  totalDistanceKm: number;
   coords: {
     lat: number;
     lng: number;
@@ -46,7 +43,6 @@ const SentLocation = ({ params }: { params: { empphone: string } }) => {
   const emphone = params.empphone;
   const date = searchParams.get("date");
   const [data, setData] = useState<SentLocationType[]>([]);
-  const [totalDistanceKm, setTotalDistanceKm] = useState(0);
   const [loading, setLoading] = useState(true);
   const [locations, setLocations] = useState<SentLocationType[]>([]);
   const [employee, setEmployee] = useState<Employee | null>(null);
@@ -66,7 +62,6 @@ const SentLocation = ({ params }: { params: { empphone: string } }) => {
 
       const result = await res.json();
       console.log("Fetched Sent Locations:", result);
-      setTotalDistanceKm(result.totalDistanceKm);
       setLocations(result.data || []);
       setEmployee({
         name: result.employee.name,
@@ -77,7 +72,6 @@ const SentLocation = ({ params }: { params: { empphone: string } }) => {
       });
       if (result.success) {
         setData(result.data);
-        
       } else {
         setError("No data found");
       }
@@ -133,9 +127,10 @@ const SentLocation = ({ params }: { params: { empphone: string } }) => {
   return (
     <>
       <NavBar />
-     
       <div className="min-h-screen bg-slate-50/50 pb-12 pt-20">
-        <div className="px-4 sm:px-6 py-5">
+       
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+           <div className="px-4 sm:px-6 py-5">
         {/* Back Button */}
             <Link href="/admin">
               <Button variant="ghost" className="mb-4">
@@ -144,7 +139,6 @@ const SentLocation = ({ params }: { params: { empphone: string } }) => {
               </Button>
             </Link>
      </div>
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           {/* Header Section */}
           <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
             <div>
@@ -156,13 +150,6 @@ const SentLocation = ({ params }: { params: { empphone: string } }) => {
                 <span className="font-medium text-slate-900">
                   {date ? new Date(date).toLocaleDateString() : "Today"}
                 </span>
-              </p>
-              <p className="mt-2 text-slate-500">
-                Tracking travel Distance by executive :{" "}
-                <span className="font-medium text-slate-900">
-                  {totalDistanceKm.toFixed(2)}Km
-                </span>
-
               </p>
             </div>
             <div className="flex items-center gap-2 rounded-full bg-white px-4 py-2 shadow-sm ring-1 ring-slate-200">
@@ -262,7 +249,7 @@ const SentLocation = ({ params }: { params: { empphone: string } }) => {
             </div>
           )}
 
-          {/* Locations Grid */}
+          {/* Locations List */}
           {locations.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 py-16 text-center">
               <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-slate-200">
@@ -276,73 +263,71 @@ const SentLocation = ({ params }: { params: { empphone: string } }) => {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="space-y-4">
               {locations.map((item, index) => (
                 <div
                   key={index}
-                  className="group relative flex flex-col justify-between overflow-hidden rounded-2xl bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg ring-1 ring-slate-200 hover:ring-blue-100"
+                  className="group relative overflow-hidden rounded-2xl bg-white shadow-sm transition-all duration-300 hover:shadow-lg ring-1 ring-slate-200 hover:ring-blue-100"
                 >
                   {/* Card Header Gradient */}
                   <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-500 opacity-0 transition-opacity group-hover:opacity-100" />
 
-                  <div className="p-5">
-                    <div className="mb-4 flex items-center justify-between">
-                      <span className="inline-flex items-center rounded-md bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
-                        <Hash className="mr-1 h-3 w-3" />
-                        {index + 1}
-                      </span>
-                      <span className="flex items-center text-xs font-medium text-slate-400">
-                        <Calendar className="mr-1 h-3 w-3" />
-                        {new Date(item.date).toLocaleDateString()}
-                      </span>
-                    </div>
-
-                    <div className="mb-6 text-center">
-                      <div className="mb-2 inline-flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors duration-300">
-                        <Clock className="h-6 w-6" />
+                  <div className="overflow-x-auto">
+                    <div className="flex items-center justify-between gap-4 p-5 min-w-max">
+                      {/* Left Section - Index & Time */}
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors duration-300 flex-shrink-0">
+                            <Clock className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <p className="text-xl font-bold text-slate-900 whitespace-nowrap">
+                              {new Date(item.date).toLocaleTimeString("en-IN", {
+                                timeZone: "Asia/Kolkata",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </p>
+                            <p className="text-xs text-slate-500 flex items-center gap-1 whitespace-nowrap">
+                              <Calendar className="h-3 w-3" />
+                              {new Date(item.date).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                      <p className="text-2xl font-bold text-slate-900">
-                        {new Date(item.date).toLocaleTimeString("en-IN", {
-                          timeZone: "Asia/Kolkata",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </p>
-                      <p className="text-xs text-slate-500 uppercase tracking-wide">
-                        Timestamp
-                      </p>
-                    </div>
 
-                    <div className="space-y-2 rounded-xl bg-slate-50 p-3 ring-1 ring-slate-100">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-slate-500">
-                          Lat
-                        </span>
-                        <span className="font-mono text-xs font-semibold text-slate-700">
-                          {item.coords.lat.toFixed(6)}
-                        </span>
+                      {/* Middle Section - Coordinates */}
+                      <div className="flex items-center gap-6 rounded-xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100 flex-shrink-0">
+                        <div className="flex flex-col">
+                          <span className="text-xs font-medium text-slate-500 mb-1">
+                            Latitude
+                          </span>
+                          <span className="font-mono text-sm font-semibold text-slate-700">
+                            {item.coords.lat.toFixed(6)}
+                          </span>
+                        </div>
+                        <div className="h-8 w-px bg-slate-200"></div>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-medium text-slate-500 mb-1">
+                            Longitude
+                          </span>
+                          <span className="font-mono text-sm font-semibold text-slate-700">
+                            {item.coords.lng.toFixed(6)}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-slate-500">
-                          Lng
-                        </span>
-                        <span className="font-mono text-xs font-semibold text-slate-700">
-                          {item.coords.lng.toFixed(6)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
 
-                  <div className="bg-slate-50 px-5 py-3 border-t border-slate-100">
-                    <a
-                      href={`https://www.google.com/maps?q=${item.coords.lat},${item.coords.lng}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200 transition-all hover:bg-slate-800 hover:text-white hover:ring-slate-800 active:scale-95"
-                    >
-                      <Navigation className="h-4 w-4" />
-                      View on Map
-                    </a>
+                      {/* Right Section - Button */}
+                      <a
+                        href={`https://www.google.com/maps?q=${item.coords.lat},${item.coords.lng}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 rounded-lg bg-white px-6 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200 transition-all hover:bg-slate-800 hover:text-white hover:ring-slate-800 active:scale-95 whitespace-nowrap flex-shrink-0"
+                      >
+                        <Navigation className="h-4 w-4" />
+                        View on Map
+                      </a>
+                    </div>
                   </div>
                 </div>
               ))}
