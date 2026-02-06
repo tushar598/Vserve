@@ -219,7 +219,7 @@ export async function POST(req: NextRequest) {
     let segmentKm = 0;
     const hasBaseline = !!employee.lastKnownCoords?.lat;
 
-    if (hasBaseline && !isNewDay) {
+    if (hasBaseline) {
       const origin = `${employee.lastKnownCoords.lat},${employee.lastKnownCoords.lng}`;
       const destination = `${coords.lat},${coords.lng}`;
 
