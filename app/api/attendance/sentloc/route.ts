@@ -219,17 +219,16 @@ export async function POST(req: NextRequest) {
     let segmentKm = 0;
     const hasBaseline = !!employee.lastKnownCoords?.lat;
 
-    if (hasBaseline) {
+    if (hasBaseline && !isNewDay) {
       const origin = `${employee.lastKnownCoords.lat},${employee.lastKnownCoords.lng}`;
       const destination = `${coords.lat},${coords.lng}`;
 
       if (origin !== destination) {
-        const apiKey = process.env.GOOGLE_MAPS_API_KEY!;
+        const apiKey = process.env.GOOGLE_MAPS_API_KEY;
         const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${origin}&destination=${destination}&mode=driving&key=${apiKey}`;
 
         const res = await fetch(url);
         const routeData = await res.json();
-        console.log("Google API response:", routeData.status, routeData);
 
         if (routeData.status === "OK") {
           segmentKm = routeData.routes[0].legs[0].distance.value / 1000;
@@ -261,12 +260,6 @@ export async function POST(req: NextRequest) {
     // --------------------------------------------------
     // 🧠 EMPLOYEE STATE UPDATE (CRITICAL)
     // --------------------------------------------------
-    if (isNewDay) {
-      employee.dailyDistanceKm = 0;
-    }
-
-    employee.dailyDistanceKm = (employee.dailyDistanceKm || 0) + segmentKm;
-
     employee.lastKnownCoords = {
       lat: coords.lat,
       lng: coords.lng,
