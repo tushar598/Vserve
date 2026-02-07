@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
-import { connectDB } from "@/lib/db";
-import Employee from "@/models/employee";
+// import { NextResponse } from "next/server";
+// import { connectDB } from "@/lib/db";
+// import Employee from "@/models/employee";
 
 // export async function GET() {
 //   try {
@@ -12,29 +12,55 @@ import Employee from "@/models/employee";
 //   }
 // }
 
-
 // 🚀 This tells Next.js and Vercel to NEVER cache this API route
-export const dynamic = "force-dynamic";
-export const revalidate = 0; // disable ISR (Incremental Static Regeneration)
-export const fetchCache = "force-no-store"; // for Next.js 14+
+// export const dynamic = "force-dynamic";
+// export const revalidate = 0; // disable ISR (Incremental Static Regeneration)
+// export const fetchCache = "force-no-store"; // for Next.js 14+
 
-export async function GET() {
+// export async function GET() {
+//   try {
+//     await connectDB();
+//     console.log("✅ Fetching latest employee data from DB...");
+//     const employees = await Employee.find({});
+//     return NextResponse.json({ success: true, employees },
+//       {
+//         status: 200,
+//         headers: {
+//           "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+//         },
+//       }
+//     );
+//   } catch (error: any) {
+//     return NextResponse.json(
+//       { success: false, error: error.message },
+//       { status: 500 }
+//     );
+//   }
+// }
+
+import { NextRequest, NextResponse } from "next/server";
+import { connectDB } from "@/lib/db";
+import Employee from "@/models/employee";
+
+// 🚀 Ye line build error ko fix karegi
+export const dynamic = "force-dynamic";
+
+export async function GET(req: NextRequest) {
   try {
     await connectDB();
-    console.log("✅ Fetching latest employee data from DB...");
-    const employees = await Employee.find({});
-    return NextResponse.json({ success: true, employees },
-      {
-        status: 200,
-        headers: {
-          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-        },
-      }
-    );
+
+    // Yahan searchParams use karne par build error aata tha,
+    // jo force-dynamic se solve ho jayega.
+    const { searchParams } = new URL(req.url);
+    const phone = searchParams.get("phone");
+
+    const employee = await Employee.findOne({ phone });
+
+    return NextResponse.json({ success: true, employee });
   } catch (error: any) {
     return NextResponse.json(
       { success: false, error: error.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
