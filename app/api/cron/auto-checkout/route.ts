@@ -17,6 +17,8 @@ export async function GET(req: Request) {
 
   try {
     await connectDB();
+    const today = dayjs().startOf("day").toDate(); // Start of today
+    const checkoutTime = dayjs().set("hour", 20).set("minute", 0).toDate(); // 8:00 PM
 
     // 1. Explicitly set the timezone to India (or your local zone)
     const userTimezone = "Asia/Kolkata"; 
