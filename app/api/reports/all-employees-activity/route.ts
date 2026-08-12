@@ -1,5 +1,3 @@
-
-
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
 import dayjs from "dayjs";
@@ -25,28 +23,10 @@ export async function GET(req: NextRequest) {
     await connectDB();
 
     const { searchParams } = new URL(req.url);
-    const phone = searchParams.get("phone");
     const startMonth = searchParams.get("startMonth"); // Format: "YYYY-MM"
     const endMonth = searchParams.get("endMonth"); // Format: "YYYY-MM"
 
-    // 1. Validation
-    if (!phone) {
-      return NextResponse.json(
-        { success: false, error: "Employee phone number is required" },
-        { status: 400 },
-      );
-    }
-
-    // 2. Fetch Employee
-    const employee = await Employee.findOne({ phone });
-    if (!employee) {
-      return NextResponse.json(
-        { success: false, error: "Employee not found" },
-        { status: 404 },
-      );
-    }
-
-    // 3. Date Range Logic (Month-Month)
+    // 1. Date Range Logic (Month-Month)
     let start: dayjs.Dayjs;
     let end: dayjs.Dayjs;
 
@@ -64,29 +44,41 @@ export async function GET(req: NextRequest) {
       end = dayjs().tz(TZ).endOf("month");
     }
 
-    // 4. Aggregation Filters
+    // 2. Fetch All Employees
+    const employees = await Employee.find({});
 
-    // A. Date Range Filter
+    // 3. Aggregation Filters
     // Note: $dayOfWeek returns 1 for Sunday
     const sundayFilter = { $ne: [{ $dayOfWeek: "$date" }, 1] };
     const stringDateSundayFilter = {
       $ne: [{ $dayOfWeek: { $toDate: "$date" } }, 1],
     };
 
-    // 5. Parallel Aggregation Execution
+    // Calculate total week off days (Sundays) and total days in the given range
+    let totalWeekOffs = 0;
+    let totalDaysInMonth = 0;
+    let tempDate = start.clone();
+    while (!tempDate.isAfter(end, "day")) {
+      totalDaysInMonth++;
+      if (tempDate.day() === 0) {
+        totalWeekOffs++;
+      }
+      tempDate = tempDate.add(1, "day");
+    }
+
+    // 4. Parallel Aggregation Execution (for all employees simultaneously)
     const [attendanceStats, distanceStats, locationStats] = await Promise.all([
       // --- A. Attendance Summary (Excluding Sundays + 10 AM Logic) ---
       Attendance.aggregate([
         {
           $match: {
-            employee: employee._id,
             date: { $gte: start.toDate(), $lte: end.toDate() },
             $expr: sundayFilter, // Exclude Sundays
           },
         },
         {
           $group: {
-            _id: null,
+            _id: "$employee",
             totalDays: { $sum: 1 },
             onTimeCount: {
               $sum: {
@@ -134,7 +126,6 @@ export async function GET(req: NextRequest) {
       DailyDistance.aggregate([
         {
           $match: {
-            employeeId: employee._id,
             date: {
               $gte: start.format("YYYY-MM-DD"),
               $lte: end.format("YYYY-MM-DD"),
@@ -144,7 +135,7 @@ export async function GET(req: NextRequest) {
         },
         {
           $group: {
-            _id: null,
+            _id: "$employeeId",
             totalKm: { $sum: "$totalKm" },
           },
         },
@@ -154,30 +145,73 @@ export async function GET(req: NextRequest) {
       SentLocation.aggregate([
         {
           $match: {
-            employeeId: employee._id,
             date: { $gte: start.toDate(), $lte: end.toDate() },
             $expr: sundayFilter,
           },
         },
         {
           $group: {
-            _id: { lat: "$coords.lat", lng: "$coords.lng" },
+            _id: { employeeId: "$employeeId", lat: "$coords.lat", lng: "$coords.lng" },
           },
         },
         {
-          $count: "distinctCount",
+          $group: {
+            _id: "$_id.employeeId",
+            distinctCount: { $sum: 1 },
+          },
         },
       ]),
     ]);
 
-    // 6. Data Formatting & Defaults
-    const attendance = attendanceStats[0] || {
-      totalDays: 0,
-      onTimeCount: 0,
-      lateCount: 0,
-    };
-    const travel = distanceStats[0] || { totalKm: 0 };
-    const locations = locationStats[0] || { distinctCount: 0 };
+    // 5. Build lookup maps
+    const attendanceMap = new Map(attendanceStats.map((s) => [s._id?.toString(), s]));
+    const distanceMap = new Map(distanceStats.map((s) => [s._id?.toString(), s]));
+    const locationMap = new Map(locationStats.map((s) => [s._id?.toString(), s]));
+
+    // 6. Map Employee Data with Reports
+    const reports = employees.map((emp) => {
+      const empId = emp._id.toString();
+      const attendance = attendanceMap.get(empId) || {
+        totalDays: 0,
+        onTimeCount: 0,
+        lateCount: 0,
+      };
+      const travel = distanceMap.get(empId) || { totalKm: 0 };
+      const locations = locationMap.get(empId) || { distinctCount: 0 };
+
+      return {
+        employee: {
+          name: emp.name,
+          fatherName: emp.fatherName,
+          role: emp.role,
+          department: emp.department,
+          location: emp.location,
+          phone: emp.phone,
+          panCard: emp.panCard,
+          bankAccountNumber: emp.bankAccountNumber,
+          dateOfJoining: emp.dateOfJoining,
+          addressProof: emp.addressProof,
+          idCardNumber: emp.idCardNumber,
+        },
+        report: {
+          attendance: {
+            totalDaysInMonth: totalDaysInMonth,
+            presentDays: attendance.totalDays,
+            weekOffs: totalWeekOffs,
+            status: {
+              onTime: attendance.onTimeCount,
+              late: attendance.lateCount,
+            },
+          },
+          travel: {
+            totalDistanceKm: Number(travel.totalKm.toFixed(2)),
+          },
+          activity: {
+            distinctLocationsVisited: locations.distinctCount,
+          },
+        },
+      };
+    });
 
     return NextResponse.json({
       success: true,
@@ -188,34 +222,7 @@ export async function GET(req: NextRequest) {
         },
         sundayExcluded: true,
       },
-      employee: {
-        name: employee.name,
-        fatherName: employee.fatherName,
-        role: employee.role,
-        department: employee.department,
-        location: employee.location,
-        phone: employee.phone,
-        panCard: employee.panCard,
-        bankAccountNumber: employee.bankAccountNumber,
-        dateOfJoining: employee.dateOfJoining,
-        addressProof: employee.addressProof,
-        idCardNumber: employee.idCardNumber,
-      },
-      report: {
-        attendance: {
-          presentDays: attendance.totalDays,
-          status: {
-            onTime: attendance.onTimeCount,
-            late: attendance.lateCount,
-          },
-        },
-        travel: {
-          totalDistanceKm: Number(travel.totalKm.toFixed(2)),
-        },
-        activity: {
-          distinctLocationsVisited: locations.distinctCount,
-        },
-      },
+      reports,
     });
   } catch (error: any) {
     console.error("Report Generation Error:", error);
@@ -225,4 +232,3 @@ export async function GET(req: NextRequest) {
     );
   }
 }
-

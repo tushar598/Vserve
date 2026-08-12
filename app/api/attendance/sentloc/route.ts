@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import Employee from "@/models/employee";
 import DailyDistance, { IDailyDistance } from "@/models/dailydistance";
 import SentLocation from "@/models/sentLocation";
+import Attendance from "@/models/attendance";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
@@ -69,14 +70,103 @@ export async function GET(req: NextRequest) {
     // 📍 Fetch sent locations
     const locations = await SentLocation.find(query).sort({ date: 1 }).lean();
 
-    // console.log("Locations found:", locations.length, "for date:", targetDateStr);
+    // 📍 Fetch attendance for checkin / checkout
+    const attendance = await Attendance.findOne({
+      employee: employee._id,
+      date: { $gte: start, $lte: end },
+    }).lean() as any;
+
+    // Build a set of timestamps to deduplicate against (check-in / check-out)
+    const DEDUP_WINDOW_MS = 2 * 60 * 1000; // 2 minutes
+    const dedupeTimestamps: number[] = [];
+
+    if (attendance) {
+      if (attendance.checkInTime) {
+        dedupeTimestamps.push(new Date(attendance.checkInTime).getTime());
+      }
+      if (attendance.checkOutTime) {
+        dedupeTimestamps.push(new Date(attendance.checkOutTime).getTime());
+      }
+    }
+
+    // Filter out SentLocation breadcrumbs that fall within the dedup window
+    // of a check-in or check-out timestamp (these are duplicates created by
+    // handleSendLocation auto-checking-in then immediately sending a location).
+    const filteredLocations = (locations as any[]).filter((loc) => {
+      const locTime = new Date(loc.date).getTime();
+      return !dedupeTimestamps.some(
+        (ts) => Math.abs(locTime - ts) <= DEDUP_WINDOW_MS
+      );
+    });
+
+    const allLocations: any[] = [...filteredLocations];
+
+    if (attendance) {
+      if (attendance.checkInTime && attendance.checkInLocation) {
+        allLocations.push({
+          _id: attendance._id.toString() + "_in",
+          employeeId: employee._id,
+          date: attendance.checkInTime,
+          coords: attendance.checkInLocation,
+          isCheckIn: true,
+        });
+      }
+      if (attendance.checkOutTime && attendance.checkOutLocation) {
+        allLocations.push({
+          _id: attendance._id.toString() + "_out",
+          employeeId: employee._id,
+          date: attendance.checkOutTime,
+          coords: attendance.checkOutLocation,
+          isCheckOut: true,
+        });
+      }
+    }
+
+    // Sort all locations by date ascending
+    allLocations.sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+
+    // --- DEDUP PASS: Remove locations with same coords and close timestamps ---
+    // Two locations are considered duplicates if they are within 50m of each
+    // other AND within 60 seconds of each other.
+    const DEDUP_COORD_THRESHOLD_M = 50; // meters
+    const DEDUP_TIME_THRESHOLD_MS = 60 * 1000; // 60 seconds
+
+    const haversineM = (c1: { lat: number; lng: number }, c2: { lat: number; lng: number }) => {
+      const R = 6371e3;
+      const dLat = ((c2.lat - c1.lat) * Math.PI) / 180;
+      const dLon = ((c2.lng - c1.lng) * Math.PI) / 180;
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos((c1.lat * Math.PI) / 180) *
+          Math.cos((c2.lat * Math.PI) / 180) *
+          Math.sin(dLon / 2) ** 2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    };
+
+    const dedupedLocations: any[] = [];
+    for (const loc of allLocations) {
+      const locTime = new Date(loc.date).getTime();
+      const isDup = dedupedLocations.some((kept) => {
+        const keptTime = new Date(kept.date).getTime();
+        if (Math.abs(locTime - keptTime) > DEDUP_TIME_THRESHOLD_MS) return false;
+        if (!loc.coords || !kept.coords) return false;
+        return haversineM(loc.coords, kept.coords) <= DEDUP_COORD_THRESHOLD_M;
+      });
+      if (!isDup) {
+        dedupedLocations.push(loc);
+      }
+    }
+
+    // console.log("Locations found:", allLocations.length, "for date:", targetDateStr);
 
     return NextResponse.json({
       employee,
       success: true,
       totalDistanceKm,
-      count: locations.length,
-      data: locations,
+      count: dedupedLocations.length,
+      data: dedupedLocations,
     });
   } catch (error) {
     console.error("Fetch SentLocation Error:", error);
@@ -292,7 +382,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     await connectDB();
-    const { phone, coords } = await req.json();
+    const { phone, coords, hashalt } = await req.json();
 
     const employee = await Employee.findOne({ phone });
     if (!employee)
@@ -308,12 +398,18 @@ export async function POST(req: NextRequest) {
     let segmentKm = 0;
     const hasBaseline = !!employee.lastKnownCoords?.lat;
 
+    const lastUpdate = employee.lastLocationTimestamp
+      ? dayjs(employee.lastLocationTimestamp).tz("Asia/Kolkata")
+      : null;
+    const isNewDay = !lastUpdate || !nowIST.isSame(lastUpdate, "day");
+
     console.log("--- DEBUG DISTANCE START ---");
     console.log("Employee found:", employee.name);
     console.log("Has Baseline:", hasBaseline);
+    console.log("Is New Day:", isNewDay);
 
-    // Testing ke liye humne !isNewDay hata diya hai
-    if (hasBaseline) {
+    // Only calculate distance if we have a baseline and it's NOT a new day
+    if (hasBaseline && !isNewDay) {
       const origin = `${employee.lastKnownCoords.lat},${employee.lastKnownCoords.lng}`;
       const destination = `${coords.lat},${coords.lng}`;
 
@@ -356,16 +452,92 @@ export async function POST(req: NextRequest) {
     console.log("Total Today in DB:", updatedDailyRecord.totalKm);
 
     // --------------------------------------------------
-    // 📍 LOCATION BREADCRUMB
+    // 📍 DUPLICATE CHECK + LOCATION BREADCRUMB
     // --------------------------------------------------
-    const sentLocation = await SentLocation.create({
+    // Prevent saving a location if one already exists for this employee
+    // within the last 60 seconds at the same coordinates (~50m radius).
+    const DEDUP_SECONDS = 60;
+    const cutoff = new Date(timestamp.getTime() - DEDUP_SECONDS * 1000);
+
+    const recentDuplicate = await SentLocation.findOne({
       employeeId: employee._id,
-      date: timestamp,
-      coords: {
-        lat: coords.lat,
-        lng: coords.lng,
-      },
+      date: { $gte: cutoff },
+      "coords.lat": { $gte: coords.lat - 0.0002, $lte: coords.lat + 0.0002 },
+      "coords.lng": { $gte: coords.lng - 0.0002, $lte: coords.lng + 0.0002 },
     });
+
+    if (recentDuplicate) {
+      // Duplicate detected — skip saving, still update employee state below
+      console.log("Duplicate location skipped for", employee.name);
+    } else {
+      await SentLocation.create({
+        employeeId: employee._id,
+        date: timestamp,
+        hashalt: !!hashalt,
+        coords: {
+          lat: coords.lat,
+          lng: coords.lng,
+        },
+      });
+    }
+
+    if (coords && coords.lat !== 0 && coords.lng !== 0) {
+      const startOfDay = nowIST.startOf("day").toDate();
+      const endOfDay = nowIST.endOf("day").toDate();
+      
+      let attendance = await Attendance.findOne({
+        employee: employee._id,
+        date: { $gte: startOfDay, $lte: endOfDay },
+      });
+      
+      if (!attendance) {
+        attendance = new Attendance({
+          employee: employee._id,
+          date: nowIST.toDate(),
+        });
+      }
+
+      const OFFICE_CENTER = { lat: 22.723541, lng: 75.884507 };
+      const BHOPAL_OFFICE_CENTER = { lat: 23.2349541, lng: 77.4354195 };
+      
+      const haversineMeters = (c1: { lat: number; lng: number }, c2: { lat: number; lng: number }) => {
+        const R = 6371000;
+        const dLat = ((c2.lat - c1.lat) * Math.PI) / 180;
+        const dLng = ((c2.lng - c1.lng) * Math.PI) / 180;
+        const lat1 = (c1.lat * Math.PI) / 180;
+        const lat2 = (c2.lat * Math.PI) / 180;
+        const a = Math.sin(dLat / 2) ** 2 + Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      };
+
+      const dIndore = haversineMeters(coords, OFFICE_CENTER);
+      const dBhopal = haversineMeters(coords, BHOPAL_OFFICE_CENTER);
+      const isInsideOffice = dIndore <= 200 || dBhopal <= 200;
+      
+      const timeStr = nowIST.format("hh:mm A");
+
+      if (!attendance.work_mode || attendance.work_mode === "—") {
+        attendance.work_mode = isInsideOffice ? "Office" : "Field";
+      }
+
+      if (!isInsideOffice) {
+        if (!attendance.first_visit || !attendance.first_visit.lat) {
+          attendance.first_visit = { lat: coords.lat, lng: coords.lng, time: timeStr };
+        }
+      }
+
+      attendance.last_visit = { lat: coords.lat, lng: coords.lng, time: timeStr };
+      
+      if (typeof attendance.km !== "number") attendance.km = 0;
+      attendance.km += segmentKm;
+
+      if (typeof attendance.locations_cover !== "number") attendance.locations_cover = 0;
+      if (!hashalt) {
+        attendance.locations_cover += 1;
+      }
+
+      await attendance.save();
+    }
 
     // --------------------------------------------------
     // 🧠 EMPLOYEE STATE UPDATE (FORCE WRITE)
@@ -388,7 +560,7 @@ export async function POST(req: NextRequest) {
       { new: true }, // Return updated doc (optional)
     );
 
-    console.log("--- DEBUG DISTANCE END ---");
+
 
     return NextResponse.json({
       success: true,
