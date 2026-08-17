@@ -466,11 +466,14 @@ export async function POST(req: NextRequest) {
       "coords.lng": { $gte: coords.lng - 0.0002, $lte: coords.lng + 0.0002 },
     });
 
+    let sentLocationId: string | null = null;
+
     if (recentDuplicate) {
       // Duplicate detected — skip saving, still update employee state below
       console.log("Duplicate location skipped for", employee.name);
+      sentLocationId = recentDuplicate._id.toString();
     } else {
-      await SentLocation.create({
+      const sentLocation = await SentLocation.create({
         employeeId: employee._id,
         date: timestamp,
         hashalt: !!hashalt,
@@ -479,6 +482,7 @@ export async function POST(req: NextRequest) {
           lng: coords.lng,
         },
       });
+      sentLocationId = sentLocation._id.toString();
     }
 
     if (coords && coords.lat !== 0 && coords.lng !== 0) {
@@ -564,6 +568,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      sentLocationId,
       segmentAdded: Number(segmentKm.toFixed(2)),
       totalToday: Number(updatedDailyRecord.totalKm.toFixed(2)),
     });
