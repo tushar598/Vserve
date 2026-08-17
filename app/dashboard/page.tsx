@@ -11,6 +11,7 @@ import {
 import { Geolocation } from "@capacitor/geolocation";
 import Navbar from "@/components/Navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import LocationFlowModals from "@/components/dashboard/LocationFlowModals";
 
 // Constants
 const OFFICE_CENTER = { lat: 22.723541, lng: 75.884507 };
@@ -66,6 +67,11 @@ export default function DashboardPage() {
   // ✅ NEW: Checkout Modal State
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
 
+  // ✅ NEW: Location Flow Modal State
+  const [showLocationFlow, setShowLocationFlow] = useState(false);
+  const [locationFlowType, setLocationFlowType] = useState<"send_location" | "halt_location">("send_location");
+  const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
+
   const WORK_START_HOUR = 8; // 8:00 AM
   const WORK_END_HOUR = 19.30; // 7:30 PM
 
@@ -77,7 +83,6 @@ export default function DashboardPage() {
     libraries,
   });
 
-  console.log("map key :", process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY);
 
   // This will trigger every time checkedIn actually changes
   useEffect(() => {
@@ -182,6 +187,7 @@ export default function DashboardPage() {
             currentPos.coords.latitude,
             currentPos.coords.longitude,
           );
+          if (currentPos.coords.accuracy) setGpsAccuracy(currentPos.coords.accuracy);
         }
 
         watchId = await Geolocation.watchPosition(
@@ -200,6 +206,7 @@ export default function DashboardPage() {
                 position.coords.latitude,
                 position.coords.longitude,
               );
+              if (position.coords.accuracy) setGpsAccuracy(position.coords.accuracy);
             }
           },
         );
@@ -322,102 +329,43 @@ export default function DashboardPage() {
     }
   };
 
-  // ✅ Updated: Handle Send Location with Loading State
-  const handleSendLocation = async () => {
+  // ✅ Updated: Handle Send Location — Opens the Flow Modal
+  const handleSendLocation = () => {
     if (!userData?.phone) {
       alert("User data missing");
       return;
     }
-
-    setIsSendingLocation(true); // Start loading
-
-    try {
-      // 🔒 Always fetch a FRESH location to ensure device location is currently on
-      let freshCoords: { lat: number; lng: number };
-      try {
-        freshCoords = await getFreshLocation();
-        setCoords(freshCoords);
-      } catch (locErr: any) {
-        console.error("Fresh location fetch failed:", locErr);
-        alert(
-          "📍 Unable to get your current location. Please make sure location services are turned ON and location permission is granted, then try again."
-        );
-        return;
-      }
-
-      // 1️⃣ Check check-in status from backend
-      const statusRes = await fetch("/api/attendance/ischeckin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: userData.phone }),
-      });
-
-      const statusData = await statusRes.json();
-
-      if (!statusData.success) {
-        throw new Error(statusData.error || "Failed to verify check-in status");
-      }
-
-      // 2️⃣ Auto check-in ONLY if not checked in
-      if (!statusData.checkedIn) {
-        const checkinRes = await fetch("/api/attendance/checkin", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            phone: userData.phone,
-            coords: freshCoords,
-          }),
-        });
-
-        const checkinData = await checkinRes.json();
-
-        if (
-          !checkinData.success &&
-          !checkinData.error?.toLowerCase().includes("already")
-        ) {
-          throw new Error(checkinData.error || "Auto check-in failed");
-        }
-      }
-      // 3️⃣ Send location
-      const locRes = await fetch("/api/attendance/sentloc", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          phone: userData.phone,
-          coords: freshCoords,
-        }),
-      });
-
-      const locData = await locRes.json();
-
-      if (!locData.success) {
-        throw new Error(locData.error || "Failed to send location");
-      }
-
-      // ✅ Update local state so button text updates automatically
-      setCheckedIn(true);
-      setShow(true);
-
-      alert("📍 Location sent successfully!");
-    } catch (err: any) {
-      console.error("Send location error:", err);
-      alert("❌ Failed to send location: " + err.message);
-    } finally {
-      setIsSendingLocation(false); // Stop loading
-    }
+    setLocationFlowType("send_location");
+    setShowLocationFlow(true);
   };
 
-  // ✅ Handle Halt Location  (Halt Location) with Loading State
-  const handleSendHaltLocation = async () => {
+  // ✅ Handle Halt Location — Opens the Flow Modal
+  const handleSendHaltLocation = () => {
     if (!userData?.phone) {
       alert("User data missing");
       return;
     }
+    setLocationFlowType("halt_location");
+    setShowLocationFlow(true);
+  };
 
-    setIsSendingHaltLocation(true); // Start loading
+  // ✅ NEW: Handle Flow Completion — Runs the existing sentloc logic + saves form data
+  const handleFlowComplete = async (flowData: {
+    formData: any;
+    formSkipped: boolean;
+    photoSkipped: boolean;
+    geotaggedPhotoBlob: Blob | null;
+  }) => {
+    const isHalt = locationFlowType === "halt_location";
+
+    if (isHalt) {
+      setIsSendingHaltLocation(true);
+    } else {
+      setIsSendingLocation(true);
+    }
 
     try {
-      // 🔒 Always fetch a FRESH location to ensure device location is currently on
+      // 🔒 Fetch FRESH location
       let freshCoords: { lat: number; lng: number };
       try {
         freshCoords = await getFreshLocation();
@@ -430,66 +378,88 @@ export default function DashboardPage() {
         return;
       }
 
-      // 1️⃣ Check check-in status from backend
+      // 1️⃣ Check check-in status
       const statusRes = await fetch("/api/attendance/ischeckin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: userData.phone }),
+        body: JSON.stringify({ phone: userData!.phone }),
       });
-
       const statusData = await statusRes.json();
+      if (!statusData.success) throw new Error(statusData.error || "Failed to verify check-in status");
 
-      if (!statusData.success) {
-        throw new Error(statusData.error || "Failed to verify check-in status");
-      }
-
-      // 2️⃣ Auto check-in ONLY if not checked in
+      // 2️⃣ Auto check-in if needed
       if (!statusData.checkedIn) {
         const checkinRes = await fetch("/api/attendance/checkin", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            phone: userData.phone,
-            coords: freshCoords,
-          }),
+          body: JSON.stringify({ phone: userData!.phone, coords: freshCoords }),
         });
-
         const checkinData = await checkinRes.json();
-
-        if (
-          !checkinData.success &&
-          !checkinData.error?.toLowerCase().includes("already")
-        ) {
+        if (!checkinData.success && !checkinData.error?.toLowerCase().includes("already")) {
           throw new Error(checkinData.error || "Auto check-in failed");
         }
       }
-      // 3️⃣ Send location with hashalt flag
+
+      // 3️⃣ Send location (existing sentloc API — now returns sentLocationId)
       const locRes = await fetch("/api/attendance/sentloc", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          phone: userData.phone,
+          phone: userData!.phone,
           coords: freshCoords,
-          hashalt: true,
+          ...(isHalt ? { hashalt: true } : {}),
         }),
       });
-
       const locData = await locRes.json();
+      if (!locData.success) throw new Error(locData.error || "Failed to send location");
 
-      if (!locData.success) {
-        throw new Error(locData.error || "Failed to send location");
+      // 4️⃣ Save form data + photo to /api/attendance/location-form
+      const formPayload = new FormData();
+      formPayload.append("sentLocationId", locData.sentLocationId);
+      formPayload.append("phone", userData!.phone);
+      formPayload.append("actionType", locationFlowType);
+      formPayload.append("coordsLat", String(freshCoords.lat));
+      formPayload.append("coordsLng", String(freshCoords.lng));
+      formPayload.append("gpsAccuracy", String(gpsAccuracy || ""));
+      formPayload.append("formSkipped", String(flowData.formSkipped));
+      formPayload.append("photoSkipped", String(flowData.photoSkipped));
+
+      // Append all 19 form fields
+      if (!flowData.formSkipped) {
+        Object.entries(flowData.formData).forEach(([key, value]) => {
+          formPayload.append(key, String(value || ""));
+        });
       }
 
-      // ✅ Update local state so button text updates automatically
+      // Append photo blob if exists
+      if (flowData.geotaggedPhotoBlob) {
+        formPayload.append("photo", flowData.geotaggedPhotoBlob, "geotagged.jpg");
+      }
+
+      const formRes = await fetch("/api/attendance/location-form", {
+        method: "POST",
+        body: formPayload,
+      });
+      const formResult = await formRes.json();
+      if (!formResult.success) {
+        console.error("Form save failed (non-blocking):", formResult.error);
+      }
+
+      // ✅ Update local state
       setCheckedIn(true);
       setShow(true);
+      setShowLocationFlow(false);
 
       alert("📍 Location sent successfully!");
     } catch (err: any) {
       console.error("Send location error:", err);
       alert("❌ Failed to send location: " + err.message);
     } finally {
-      setIsSendingHaltLocation(false); // Stop loading
+      if (isHalt) {
+        setIsSendingHaltLocation(false);
+      } else {
+        setIsSendingLocation(false);
+      }
     }
   };
 
@@ -784,6 +754,17 @@ export default function DashboardPage() {
             </div>
           </div>
         )}
+
+        {/* ✅ NEW: Location Flow Modal (Form → Photo → Confirm) */}
+        <LocationFlowModals
+          isOpen={showLocationFlow}
+          onComplete={handleFlowComplete}
+          onCancel={() => setShowLocationFlow(false)}
+          currentCoords={coords}
+          gpsAccuracy={gpsAccuracy}
+          employeeName={userData?.name || ""}
+          employeePhone={userData?.phone || ""}
+        />
 
         {/* Status Messages */}
         <Card className="rounded-2xl shadow-xl border border-gray-200 bg-white/90 backdrop-blur-sm">

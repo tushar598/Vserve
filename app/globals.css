@@ -125,3 +125,23 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ── Location Flow Modal Form Inputs ── */
+.form-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  color: #374151;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.form-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+.form-input::placeholder {
+  color: #9ca3af;
+}

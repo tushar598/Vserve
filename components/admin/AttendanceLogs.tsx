@@ -640,44 +640,44 @@ export default function AttendanceLogs({
 
       <CardContent className="p-0">
         <div className="overflow-x-auto w-full">
-          <table className="w-full whitespace-nowrap divide-y divide-gray-200 text-xs sm:text-sm">
+          <table className="w-full whitespace-nowrap divide-y divide-gray-200 text-sm sm:text-base">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase leading-tight">
-                <IdCardLanyard className="inline w-3 h-3 mr-0.5"/> Name
+                <th className="px-3 sm:px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 uppercase leading-tight">
+                <IdCardLanyard className="inline w-4 h-4 mr-1"/> Name
                 </th>
-                <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase leading-tight">
-                  <Calendar className="inline w-3 h-3 mr-0.5" /> Date
+                <th className="px-3 sm:px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 uppercase leading-tight">
+                  <Calendar className="inline w-4 h-4 mr-1" /> Date
                 </th>
-                <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase leading-tight">
-                 <Info className="inline w-3 h-3 mr-0.5"/> Status
+                <th className="px-3 sm:px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 uppercase leading-tight">
+                 <Info className="inline w-4 h-4 mr-1"/> Status
                 </th>
-                <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase leading-tight">
-                 <CheckCheck className="inline w-3 h-3 mr-0.5"/> Check-in
+                <th className="px-3 sm:px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 uppercase leading-tight">
+                 <CheckCheck className="inline w-4 h-4 mr-1"/> Check-in
                 </th>
-                <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase leading-tight">
-                  <BriefcaseBusiness className="inline w-3 h-3 mr-0.5" /> Work Mode
+                <th className="px-3 sm:px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 uppercase leading-tight">
+                  <BriefcaseBusiness className="inline w-4 h-4 mr-1" /> Work Mode
                 </th>
-                <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase leading-tight">
-                 <ScanLine className="inline w-3 h-3 mr-0.5"/> Check-Out
+                <th className="px-3 sm:px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 uppercase leading-tight">
+                 <ScanLine className="inline w-4 h-4 mr-1"/> Check-Out
                 </th>
-                <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase leading-tight">
-                <MapPinned className="inline w-3 h-3 mr-0.5"/> Location
+                <th className="px-3 sm:px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 uppercase leading-tight">
+                <MapPinned className="inline w-4 h-4 mr-1"/> Location
                 </th>
-                <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase leading-tight">
-                 <ShieldQuestionMark className="inline w-3 h-3 mr-0.5"/> Dept
+                <th className="px-3 sm:px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 uppercase leading-tight">
+                 <ShieldQuestionMark className="inline w-4 h-4 mr-1"/> Dept
                 </th>
-                <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase leading-tight">
-                  <MapPin className="inline w-3 h-3 mr-0.5 text-green-500" /> First Visit
+                <th className="px-3 sm:px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 uppercase leading-tight">
+                  <MapPin className="inline w-4 h-4 mr-1 text-green-500" /> First Visit
                 </th>
-                <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase leading-tight">
-                  <MapPin className="inline w-3 h-3 mr-0.5 text-red-500" /> Last Visit
+                <th className="px-3 sm:px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 uppercase leading-tight">
+                  <MapPin className="inline w-4 h-4 mr-1 text-red-500" /> Last Visit
                 </th>
-                <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase leading-tight">
-                 <Bike className="inline w-4 h-4 mr-1"/> Km
+                <th className="px-3 sm:px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 uppercase leading-tight">
+                 <Bike className="inline w-5 h-5 mr-1"/> Km
                 </th>
-                <th className="px-2 sm:px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase leading-tight">
-                <MapPinCheck className="inline w-3 h-3 mr-0.5"/> Locs
+                <th className="px-3 sm:px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-600 uppercase leading-tight">
+                <MapPinCheck className="inline w-4 h-4 mr-1"/> Locs
                 </th>
               </tr>
             </thead>
@@ -689,14 +689,14 @@ export default function AttendanceLogs({
                   onClick={() => handleRowClick(row.phone, row.date)}
                   className="hover:bg-gray-50 transition-colors cursor-pointer"
                 >
-                  <td className="px-2 sm:px-3 py-1.5 text-gray-700">
+                  <td className="px-3 sm:px-4 py-3 text-gray-800 font-medium">
                     {row.name}
                   </td>
-                  <td className="px-2 sm:px-3 py-1.5 text-gray-700">
+                  <td className="px-3 sm:px-4 py-3 text-gray-700">
                     {extractDate(row.date)}
                   </td>
 
-                  <td className="px-2 sm:px-3 py-1.5">
+                  <td className="px-3 sm:px-4 py-3">
                     {(() => {
                       if (!row.checkIn)
                         return <span className="text-gray-400">--</span>;
@@ -712,92 +712,92 @@ export default function AttendanceLogs({
                           : "On-time";
 
                       return status === "On-time" ? (
-                        <span className="flex items-center text-green-600 font-medium">
-                          <CheckCircle className="w-4 h-4 mr-1" /> On-time
+                        <span className="flex items-center text-green-600 font-semibold">
+                          <CheckCircle className="w-5 h-5 mr-1.5" /> On-time
                         </span>
                       ) : (
-                        <span className="flex items-center text-orange-600 font-medium">
-                          <AlertCircle className="w-4 h-4 mr-1" /> Late
+                        <span className="flex items-center text-orange-600 font-semibold">
+                          <AlertCircle className="w-5 h-5 mr-1.5" /> Late
                         </span>
                       );
                     })()}
                   </td>
 
                   {/* ✅ Applied 12-hour formatting here */}
-                  <td className="px-2 sm:px-3 py-1.5 text-gray-700">
+                  <td className="px-3 sm:px-4 py-3 text-gray-700 font-medium">
                     {formatTo12Hour(row.checkIn)}
                   </td>
-                  <td className="px-2 sm:px-3 py-1.5">
+                  <td className="px-3 sm:px-4 py-3">
                     {row.work_mode && row.work_mode !== "—" ? (
                       row.work_mode === "Field" ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-xs font-semibold text-green-700 ring-1 ring-inset ring-green-600/20">
-                          <MapPin className="w-3 h-3" /> Field
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1.5 text-sm font-semibold text-green-700 ring-1 ring-inset ring-green-600/20">
+                          <MapPin className="w-4 h-4" /> Field
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 ring-1 ring-inset ring-blue-600/20">
-                          <Building className="w-3 h-3" /> Office
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-sm font-semibold text-blue-700 ring-1 ring-inset ring-blue-600/20">
+                          <Building className="w-4 h-4" /> Office
                         </span>
                       )
                     ) : (
                       <span className="text-gray-400">--</span>
                     )}
                   </td>
-                  <td className="px-2 sm:px-3 py-1.5 text-gray-700">
+                  <td className="px-3 sm:px-4 py-3 text-gray-700 font-medium">
                     {formatTo12Hour(row.checkOut)}
                   </td>
-                  <td className="px-2 sm:px-3 py-1.5 text-gray-700">
+                  <td className="px-3 sm:px-4 py-3 text-gray-700">
                     {row.location || "—"}
                   </td>
-                  <td className="px-2 sm:px-3 py-1.5 text-gray-700">
+                  <td className="px-3 sm:px-4 py-3 text-gray-700">
                     {row.department || "—"}
                   </td>
                   {/* First Visit & Last Visit Columns */}
                   {row.first_visit && row.first_visit.lat !== undefined ? (
-                    <td className="px-2 sm:px-3 py-1.5">
+                    <td className="px-3 sm:px-4 py-3">
                       <a
                         href={`https://www.google.com/maps?q=${row.first_visit.lat},${row.first_visit.lng}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="inline-flex items-center gap-1 text-xs font-medium text-green-600 hover:underline"
+                        className="inline-flex items-center gap-1.5 text-sm font-semibold text-green-600 hover:underline"
                         title={`${Number(row.first_visit.lat).toFixed(6)}, ${Number(row.first_visit.lng).toFixed(6)}`}
                       >
-                        <Navigation className="w-3 h-3" />
+                        <Navigation className="w-4 h-4" />
                         {row.first_visit.time}
                       </a>
                     </td>
                   ) : (
-                    <td className="px-2 sm:px-3 py-1.5"><span className="text-gray-400">--</span></td>
+                    <td className="px-3 sm:px-4 py-3"><span className="text-gray-400">--</span></td>
                   )}
                   {row.last_visit && row.last_visit.lat !== undefined ? (
-                    <td className="px-2 sm:px-3 py-1.5">
+                    <td className="px-3 sm:px-4 py-3">
                       <a
                         href={`https://www.google.com/maps?q=${row.last_visit.lat},${row.last_visit.lng}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="inline-flex items-center gap-1 text-xs font-medium text-red-600 hover:underline"
+                        className="inline-flex items-center gap-1.5 text-sm font-semibold text-red-600 hover:underline"
                         title={`${Number(row.last_visit.lat).toFixed(6)}, ${Number(row.last_visit.lng).toFixed(6)}`}
                       >
-                        <Navigation className="w-3 h-3" />
+                        <Navigation className="w-4 h-4" />
                         {row.last_visit.time}
                       </a>
                     </td>
                   ) : (
-                    <td className="px-2 sm:px-3 py-1.5"><span className="text-gray-400">--</span></td>
+                    <td className="px-3 sm:px-4 py-3"><span className="text-gray-400">--</span></td>
                   )}
-                  <td className="px-2 sm:px-3 py-1.5">
+                  <td className="px-3 sm:px-4 py-3">
                     {row.km !== undefined && row.km !== null ? (
-                      <span className="inline-flex items-center gap-1 text-gray-700 whitespace-nowrap">
+                      <span className="inline-flex items-center gap-1.5 text-gray-800 font-semibold whitespace-nowrap">
                         {row.km.toFixed(2)} km
                       </span>
                     ) : (
                       <span className="text-gray-400">—</span>
                     )}
                   </td>
-                  <td className="px-2 sm:px-3 py-1.5">
+                  <td className="px-3 sm:px-4 py-3">
                     {row.locations_cover !== undefined && row.locations_cover !== null ? (
-                      <span className="inline-flex items-center gap-1 text-gray-700">
+                      <span className="inline-flex items-center gap-1.5 text-gray-800 font-semibold">
                         {row.locations_cover}
                       </span>
                     ) : (

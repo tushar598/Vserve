@@ -24,6 +24,11 @@ type AttendanceRow = {
   checkOut?: string;
   location?: string;
   department?: string;
+  work_mode?: string;
+  first_visit?: { lat: number; lng: number; time: string };
+  last_visit?: { lat: number; lng: number; time: string };
+  km?: number;
+  locations_cover?: number;
 };
 
 type LateReq = {
