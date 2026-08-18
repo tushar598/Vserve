@@ -231,6 +231,8 @@ export default function AdminPanel() {
     router.push("/admin/employee");
   };
 
+
+
   if (loading)
     return (
       <div className="flex h-64 items-center justify-center">
@@ -271,6 +273,7 @@ export default function AdminPanel() {
           <UserPlus className="w-4 h-4" />
           Create Employee
         </button>
+
       </div>
 
       {/* Attendance Logs Card */}
